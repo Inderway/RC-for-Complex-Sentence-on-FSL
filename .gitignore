@@ -131,3 +131,4 @@ dmypy.json
 # self
 .idea/
 data/
+test_codes/data
