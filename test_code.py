@@ -1,3 +1,4 @@
+# coding=utf-8
 # created at 2021/4/4
 # used for learning and test
 import torch
@@ -22,4 +23,3 @@ print(data)
 
 from torch_geometric.datasets import TUDataset
 dataset=TUDataset(root='data/tmp/ENZYMES', name='ENZYMES')
-
