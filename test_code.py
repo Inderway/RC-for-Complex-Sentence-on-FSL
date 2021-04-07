@@ -67,8 +67,7 @@ class Net(torch.nn.Module):
     def __init__(self):
         super(Net, self).__init__()
         self.conv1=GCNConv(dataset.num_node_features, 16)
-        self.conv2=GCNConv(16, 32)
-        self.conv3 = GCNConv(32, dataset.num_classes)
+        self.conv2=GCNConv(16, dataset.num_classes)
 
     def forward(self, data):
         x, edge_index=data.x, data.edge_index
@@ -76,10 +75,6 @@ class Net(torch.nn.Module):
         x=F.relu(x)
         x=F.dropout(x, training=self.training)
         x=self.conv2(x, edge_index)
-        x=F.relu(x)
-        x=F.dropout(x,training=self.training)
-        x = self.conv3(x, edge_index)
-
         return F.log_softmax(x, dim=1)
 
 model=Net().to(device)
