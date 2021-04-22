@@ -116,6 +116,7 @@ class FSMRE(nn.Module):
 
         '''Step 3: relation-aware propagation'''
         rel_att = self._relation_aware_attention(prototype, batch_context)
+        # weight the context
         batch_context = rel_att * batch_context
         batch_entities, batch_context = self.propagator(batch_entities, batch_context)
 
@@ -140,7 +141,8 @@ class FSMRE(nn.Module):
         #    (batch_size, sequence_length, hidden_size)
 
         '''Step 0: encoding '''
-        # [-1] for the last layer presentation -> size: sentence_num * max_length * h_dim(768)
+        # [-1] for the last layer representation -> size: sentence_num * max_length * h_dim(768)
+        # get the encodings of the tokens in the sentences
         encodings = self.encoder(input_set[0], input_set[1])[2][-1]
 
         '''Step 1 - 1: entity aggregation'''
@@ -148,9 +150,12 @@ class FSMRE(nn.Module):
         # todo: parallelization in entity aggregation
         batch_entities = []
         for i, entities_list in enumerate(input_set[2]):
+            # encodings of the sentence, i is the index of sentences
             s_encodings = encodings[i]
             s_ent_list = []
+            # entities_list: entity_num * entity_mask
             for ent_mask in entities_list:
+                # append the weights of nodes in relaiton graph
                 s_ent_list.append(self._aggregate_entity(s_encodings, ent_mask))
             pass
             # append(Tensor_size: num_entities * self.hidden_size)
