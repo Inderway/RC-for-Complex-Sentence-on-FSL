@@ -80,7 +80,7 @@ class NYTDataset(data.Dataset):
             e_s = []
             for ent in self.Data[c][idx]['entityMentions']:
                 e_s.append(ent['text'])
-            ents=torch.zeros([len(e_s),max_len])
+            ents=np.zeros((len(e_s),max_len))
             for id, ent in enumerate(e_s):
                 idxs=[]
                 token=tokenzier.convert_tokens_to_ids(tokenzier.tokenize(ent))
@@ -89,22 +89,29 @@ class NYTDataset(data.Dataset):
                         idxs.append((j, j+len(token)))
                 for start, end in idxs:
                     ents[id][start:end]=1
-            entities.append(ents)
-            ctxt=torch.zeros(len(ents), len(ents), max_len)
-            for id, ent in enumerate(ents):
+            entities.append(torch.from_numpy(ents))
+            ctxt=np.zeros((len(ents), len(ents), max_len))
+            for id in range(len(ents)):
                 for j in range(len(ents)):
                     if j==id:
                         continue
-
-
+                    first=min(np.where(ents[id]==1)[0][0],np.where(ents[j]==1)[0][0])
+                    last=max(np.where(ents[id]==1)[0][-1],np.where(ents[j]==1)[0][-1])
+                    print("first: {} last: {}".format(first,last))
+                    for k in range(first,last):
+                        if ents[id][k]==ents[j][k]:
+                            ctxt[id][j][k]=1
+            context.append(torch.from_numpy(ctxt))
 
 
 
 
         #print(sentences)
         #print(mask)
-        #print('--------------------------')
-        #print(entities)
+
+        print(entities[0])
+        print('--------------------------\n-------------------------------------\n---------------------------------')
+        print(context[0])
 
 
 
