@@ -9,7 +9,7 @@ import torch.nn.functional as F
 from torch_geometric.nn import GCNConv
 import numpy as np
 
-device=torch.device('cuda')
+# device=torch.device('cuda')
 
 '''
 x=torch.tensor([[-1], [0], [1]], dtype=torch.float)
@@ -98,6 +98,8 @@ dataset=Planetoid(root='data/tmp/Cora',name='Cora')
 
 d={1:1, 2:2, 3:3}
 l=[1, 2, 3, 4, 1, 2]
-r=max(i for i in range(len(l)) if l[i]==1)
-nl=np.array(l)
-print(np.where(nl==1)[0][-1])
+r=[1,2,5,1,2,2]
+l=torch.tensor(l)
+r=torch.tensor(r)
+
+
