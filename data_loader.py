@@ -13,16 +13,20 @@ from transformers import BertTokenizer
 
 
 class NYTDataset(data.Dataset):
-    def __init__(self, data_dir, name, N):
+    def __init__(self, data_dir, name, N, support_size, query_size):
         self.data_dir = data_dir
         self.N = N
         path = os.path.join(data_dir, name + '.json')
         if not os.path.exists(path):
             print("[ERROR] Data file does not exist!")
-            assert (0)
+            assert 0
+        if support_size<N:
+            print("[ERROR] support size is smaller than N!")
+            assert 0
         self.Data = json.load(open(path))
         self.classes = list(self.Data.keys())
         self.classes = self.classes[:22]
+        self.distribution=[]
 
         # sentence=self.json_data[self.classes[0]][0]['sentText']
         # print(sentence)
@@ -35,7 +39,7 @@ class NYTDataset(data.Dataset):
     def find_label(self, c, sent, ent1, ent2, labels):
         lbs = np.zeros((len(labels)))
         for rel in self.Data[c][sent]['relationMentions']:
-            if rel['em1Text'] == ent1 and rel['em2Text'] == ent2:
+            if rel['em1Text'] == ent1 and rel['em2Text'] == ent2 and rel['label'] in labels:
                 lbs[labels.index(rel['label'])] = 1
         return lbs
 
@@ -66,6 +70,7 @@ class NYTDataset(data.Dataset):
         for idx, val in idx_val_2:
             idx_of_instances_in_second_class.append(idx)
             sentences.append(val)
+
         print("class: {}, sentenceID: {}".format(target_classes[0],idx_of_instances_in_first_class[0]))
         print(sentences[0])
         # for c in target_classes:
@@ -78,16 +83,18 @@ class NYTDataset(data.Dataset):
         #     else:
         #         sentences.extend(random.sample(sents,13))
         max_len = 0
+
+        # get labels from support set and get max_len
         for i in range(len(sentences)):
             sentences[i] = tokenzier.convert_tokens_to_ids(tokenzier.tokenize(sentences[i]))
             max_len = max(max_len, len(sentences[i]))
-
+            if (11 < i < 17) or (i > 29):
+                continue
             c = target_classes[0] if i < 17 else target_classes[1]
             idx = idx_of_instances_in_first_class[i] if i < 17 else idx_of_instances_in_second_class[i - 17]
             for rel in self.Data[c][idx]['relationMentions']:
                 if rel['label'] not in labels:
                     labels.append(rel['label'])
-
         label_num = len(labels)
 
         print(max_len)
@@ -106,10 +113,12 @@ class NYTDataset(data.Dataset):
 
             c = target_classes[0] if i < 17 else target_classes[1]
             idx = idx_of_instances_in_first_class[i] if i < 17 else idx_of_instances_in_second_class[i - 17]
+            # entities of sentence i
             e_s = []
             for ent in self.Data[c][idx]['entityMentions']:
                 if ent['text'] not in e_s:
                     e_s.append(ent['text'])
+            # entity masks of sentence i
             ents = np.zeros((len(e_s), max_len))
             for id, ent in enumerate(e_s):
                 idxs = []
@@ -135,11 +144,11 @@ class NYTDataset(data.Dataset):
                         if ents[id][k] == ents[j][k]:
                             ctxt[id][j][k] = 1
                     lb[id][j] = self.find_label(c, idx, e_s[id], e_s[j], labels)
-            if i==0:
-                print("ctxt======================")
-                print(ctxt)
-                print("test====================")
-                print(np.where(ctxt[0][1]==1)[0])
+            # if i==0:
+            #     print("ctxt======================")
+            #     print(ctxt)
+            #     print("test====================")
+            #     print(np.where(ctxt[0][1]==1)[0])
             context.append(torch.from_numpy(ctxt))
             label.append(torch.from_numpy(lb))
 
@@ -172,14 +181,14 @@ def collate_fn(data):
     support_set, query_set=zip(*data)
     return support_set, query_set
 
-def get_data_loader(data_dir, name, N, batch_size):
-    dataset=NYTDataset(data_dir, name, N)
+def get_data_loader(data_dir, name, N, batch_size, support_size, query_size):
+    dataset=NYTDataset(data_dir, name, N,support_size,query_size)
     data_loader=data.DataLoader(dataset, batch_size=batch_size, collate_fn=collate_fn)
     return iter(data_loader)
 
 data_dir = 'data'
 name = 'dict'
-data_loader=get_data_loader(data_dir, name, 2, 1)
+data_loader=get_data_loader(data_dir, name, 2, 1, 25, 10)
 
 for data in data_loader:
     print("ooooooooooooooooooooooooooooooo")
