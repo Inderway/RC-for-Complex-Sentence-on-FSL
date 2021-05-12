@@ -32,6 +32,7 @@ def init_lr_scheduler(opt, optim):
 
 def init_model(opt):
     device = 'cuda:0' if torch.cuda.is_available() and opt.cuda else 'cpu'
+    # todo: alter the parameters, add encoder, aggregator and propagator
     model = FSMRE().to(device)
     return model
 
