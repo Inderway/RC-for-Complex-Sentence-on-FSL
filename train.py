@@ -103,3 +103,6 @@ def main():
     state, train_loss=res
     print('result================')
     print(train_loss)
+
+if __name__ == '__main__':
+    main()

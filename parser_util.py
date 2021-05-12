@@ -90,9 +90,10 @@ def get_parser():
                         help='input for the manual seeds initializations',
                         default=7)
 
-    # 一旦命令中有该参数，则其值为true
+    # cuda,默认为真
     parser.add_argument('--cuda',
                         action='store_true',
-                        help='enables cuda')
+                        help='enables cuda',
+                        default=True)
 
     return parser
