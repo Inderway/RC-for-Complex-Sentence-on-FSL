@@ -13,10 +13,10 @@ from transformers import BertTokenizer
 
 
 class NYTDataset(data.Dataset):
-    def __init__(self, data_dir, name, N, support_size, query_size):
-        self.data_dir = data_dir
+    def __init__(self, root, N, batch_num, support_size, query_size):
+        self.root=root
         self.N = N
-        path = os.path.join(data_dir, name + '.json')
+        path = root
         if not os.path.exists(path):
             print("[ERROR] Data file does not exist!")
             assert 0
@@ -26,6 +26,7 @@ class NYTDataset(data.Dataset):
         self.Data = json.load(open(path))
         self.classes = list(self.Data.keys())
         self.classes = self.classes[:22]
+        self.batch_num=batch_num
         self.distribution=[]
 
         # sentence=self.json_data[self.classes[0]][0]['sentText']
@@ -96,7 +97,7 @@ class NYTDataset(data.Dataset):
                 if rel['label'] not in labels:
                     labels.append(rel['label'])
         label_num = len(labels)
-
+        self.labels=labels
         print(max_len)
         # print(sentences)
         mask = []
@@ -172,23 +173,22 @@ class NYTDataset(data.Dataset):
                      entities[12:17] + entities[30:],
                      context[12:17] + context[30:],
                      label[12:17] + label[30:])
-        return support_set, query_set
+        return support_set, query_set, labels
 
     def __len__(self):
-        return 1
+        return self.batch_num
 
 def collate_fn(data):
     support_set, query_set=zip(*data)
     return support_set, query_set
 
-def get_data_loader(data_dir, name, N, batch_size, support_size, query_size):
-    dataset=NYTDataset(data_dir, name, N,support_size,query_size)
-    data_loader=data.DataLoader(dataset, batch_size=batch_size, collate_fn=collate_fn)
+def get_data_loader(root, N, batch_num, support_size, query_size):
+    dataset=NYTDataset(root, N,batch_num, support_size,query_size)
+    data_loader=data.DataLoader(dataset, batch_size=1, collate_fn=collate_fn)
     return iter(data_loader)
 
-data_dir = 'data'
-name = 'dict'
-data_loader=get_data_loader(data_dir, name, 2, 1, 25, 10)
+root='data/dict.json'
+data_loader=get_data_loader(root, 2, 1, 25, 10)
 
 for data in data_loader:
     print("ooooooooooooooooooooooooooooooo")

@@ -98,8 +98,9 @@ dataset=Planetoid(root='data/tmp/Cora',name='Cora')
 
 d={1:1, 2:2, 3:3}
 l=[1, 2, 3, 4, 1, 2]
-r=[1,2,5,1,2,2]
+r=1
 l=torch.tensor(l)
 r=torch.tensor(r)
+print(r.item())
 
 
