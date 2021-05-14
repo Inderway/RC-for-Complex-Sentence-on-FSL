@@ -97,10 +97,11 @@ dataset=Planetoid(root='data/tmp/Cora',name='Cora')
 # print('Accuracy: {:.4f}'.format(acc))
 
 d={1:1, 2:2, 3:3}
-l=[1, 2, 3, 4, 1, 2]
+l=[[1, 2], [3, 4], [1, 2]]
 r=1
+tu=([1,2], [2,3], [2,5,6])
 l=torch.tensor(l)
-r=torch.tensor(r)
-print(r.item())
+r=torch.zeros(l.shape)
+print(tu[0])
 
 

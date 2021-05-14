@@ -33,7 +33,7 @@ def init_lr_scheduler(opt, optim):
 def init_model(opt):
     device = 'cuda:0' if torch.cuda.is_available() and opt.cuda else 'cpu'
     # todo: alter the parameters, add encoder, aggregator and propagator
-    model = FSMRE().to(device)
+    model = FSMRE()#.to(device)
     return model
 
 def train(opt, dataloader, model, optim, lr_scheduler):
@@ -55,10 +55,16 @@ def train(opt, dataloader, model, optim, lr_scheduler):
         for batch in tqdm(tr_iter):
             optim.zero_grad()
             support_set, query_set, labels=batch
-            support_set, query_set=support_set.to(device), query_set.to(device)
+            support_set=support_set[0]
+            query_set=query_set[0]
+            labels=labels[0]
+            print("=========================")
+            print(labels)
+            # support_set, query_set=support_set.to(device), query_set.to(device)
             label_num=len(labels)
             # sentence_num*entity_num*entity_num*label_num
             model_output=model(support_set, query_set)
+
             loss=loss_fn(model_output, query_set[4], label_num)
             loss.backward()
             optim.step()
@@ -106,4 +112,5 @@ def main():
     print(train_loss)
 
 if __name__ == '__main__':
+    print("Begin")
     main()

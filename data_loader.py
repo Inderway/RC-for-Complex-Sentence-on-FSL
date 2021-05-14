@@ -4,7 +4,7 @@ Author: Wei
 Date: 2021/4/24
 """
 import torch
-import torch.utils.data as data
+import torch.utils.data as Data
 import os
 import numpy as np
 import random
@@ -12,22 +12,25 @@ import json
 from transformers import BertTokenizer
 
 
-class NYTDataset(data.Dataset):
-    def __init__(self, root, N, batch_num, support_size, query_size):
+class NYTDataset(Data.Dataset):
+    def __init__(self, root, N, batch_num, support_shot, query_shot, mode):
         self.root=root
         self.N = N
         path = root
         if not os.path.exists(path):
             print("[ERROR] Data file does not exist!")
             assert 0
-        if support_size<N:
-            print("[ERROR] support size is smaller than N!")
+        if support_shot<=0 or query_shot<=0:
+            print("[ERROR] support shots and query shots must be larger than 0!")
             assert 0
         self.Data = json.load(open(path))
         self.classes = list(self.Data.keys())
-        self.classes = self.classes[:22]
+        if mode=='train':
+            self.classes = self.classes[:17]
+        else:
+            self.classes=self.classes[17:22]
         self.batch_num=batch_num
-        self.distribution=[]
+
 
         # sentence=self.json_data[self.classes[0]][0]['sentText']
         # print(sentence)
@@ -139,8 +142,8 @@ class NYTDataset(data.Dataset):
                         continue
                     first = min(np.where(ents[id] == 1)[0][0], np.where(ents[j] == 1)[0][0])
                     last = max(np.where(ents[id] == 1)[0][-1], np.where(ents[j] == 1)[0][-1])
-                    if i == 0 and id == 0:
-                        print("i: {} j: {} first: {} last: {}".format(id, j, first, last))
+                    # if i == 0 and id == 0:
+                    #     print("i: {} j: {} first: {} last: {}".format(id, j, first, last))
                     for k in range(first, last):
                         if ents[id][k] == ents[j][k]:
                             ctxt[id][j][k] = 1
@@ -156,39 +159,33 @@ class NYTDataset(data.Dataset):
         # print(sentences)
         # print(mask)
 
-        print(entities[0])
-        print('-----------------------------------------------------------------------------------------------')
-        print(context[0])
-        print('------------------------------------------------------------------------------------------------')
-        print(labels)
-        print(label[0])
+        # print(entities[0])
+        # print('-----------------------------------------------------------------------------------------------')
+        # print(context[0])
+        # print('------------------------------------------------------------------------------------------------')
+        # print(labels)
+        # print(label[0])
 
-        support_set = (torch.tensor(sentences[:12] + sentences[17:30]),
-                       (torch.tensor(mask[:12] + mask[17:30])),
-                       entities[:12] + entities[17:30],
-                       context[:12] + context[17:30],
-                       label[:12] + label[17:30])
-        query_set = (torch.tensor(sentences[12:17] + sentences[30:]),
-                     (torch.tensor(mask[12:17] + mask[30:])),
-                     entities[12:17] + entities[30:],
-                     context[12:17] + context[30:],
-                     label[12:17] + label[30:])
+        support_set = torch.tensor(sentences[:12] + sentences[17:30]),torch.tensor(mask[:12] + mask[17:30]),entities[:12] + entities[17:30],context[:12] + context[17:30],label[:12] + label[17:30]
+        query_set = torch.tensor(sentences[12:17] + sentences[30:]),torch.tensor(mask[12:17] + mask[30:]),entities[12:17] + entities[30:],context[12:17] + context[30:],label[12:17] + label[30:]
         return support_set, query_set, labels
 
     def __len__(self):
         return self.batch_num
 
 def collate_fn(data):
-    support_set, query_set=zip(*data)
-    return support_set, query_set
+    support_set, query_set, labels=zip(*data)
+    return support_set, query_set, labels
 
 def get_data_loader(root, N, batch_num, support_size, query_size):
     dataset=NYTDataset(root, N,batch_num, support_size,query_size)
-    data_loader=data.DataLoader(dataset, batch_size=1, collate_fn=collate_fn)
-    return iter(data_loader)
+    data_loader=Data.DataLoader(dataset, batch_size=1, collate_fn=collate_fn)
+    return data_loader
 
-root='data/dict.json'
-data_loader=get_data_loader(root, 2, 1, 25, 10)
-
-for data in data_loader:
-    print("ooooooooooooooooooooooooooooooo")
+# root='data/dict.json'
+# data_loader=get_data_loader(root, 2, 1, 25, 10)
+#
+# for data in data_loader:
+#     print("ooooooooooooooooooooooooooooooo")
+#     spt, qry, label=data
+#     print(label[0])

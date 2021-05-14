@@ -19,10 +19,11 @@ def get_parser():
                         help='root where to store models, losses and accuracies',
                         default='..' + os.sep + 'output')
 
+    # FixMe
     parser.add_argument('-nep', '--epochs',
                         type=int,
                         help='number of epochs to train for',
-                        default=100)
+                        default=5)
 
     parser.add_argument('-lr', '--learning_rate',
                         type=float,
@@ -41,12 +42,14 @@ def get_parser():
                         help='StepLR learning rate scheduler gamma, default=0.5',
                         default=0.5)
 
+    # FixMe
     # 每个epoch的小批数
     parser.add_argument('-bcN', '--batch_num',
                         type=int,
                         help='number of episodes per epoch, default=100',
                         default=1)
 
+    # FixMe
     # 每个小批中指定的随机类的数目，默认为2
     parser.add_argument('-cTr', '--classes_per_it_tr',
                         type=int,

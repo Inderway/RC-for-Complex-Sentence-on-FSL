@@ -56,7 +56,7 @@ class FSMRE(nn.Module):
                 [1]: mask, torch.Tensor, sentence_num * max_length
                 [2]: entities, [torch.Tensor], sentence_num * entity_num * entity_mask
                 [3]: context, [torch.Tensor], sentence_num * entity_num * entity_num * context_mask
-                [4]: label, [torch.Tensor], sentence_num * entity_num * entity_num
+                [4]: label, [torch.Tensor], sentence_num * entity_num * entity_num * label_num
             query_set (tuple):
                 [0]: instances, torch.Tensor, sentence_num * max_length
                 [1]: mask, torch.Tensor, sentence_num * max_length
@@ -69,9 +69,15 @@ class FSMRE(nn.Module):
         """
         # get prototype embedding for each class
         # size: class_size * self.prototype_size
-        prototype = self._process_support(support_set)
-        prediction = self._process_query(prototype, query_set)
-        return prediction
+
+        # prototype = self._process_support(support_set)
+        # prediction = self._process_query(prototype, query_set)
+
+        # FixMe
+        _prediction=[]
+        for sentence in support_set[4]:
+            _prediction.append(torch.rand(sentence.shape))
+        return _prediction
 
     def _process_support(self, support_set):
         """
