@@ -18,7 +18,7 @@ def init_seed(opt):
 
 def init_dataloader(opt, mode):
     # todo: alter parameters
-    data_loader=get_data_loader(opt.dataset_root, opt.classes_per_it_tr, opt.batch_num, 25, 10)
+    data_loader=get_data_loader(opt.dataset_root, opt.classes_per_it_tr, opt.batch_num, 1, 1,mode)
     return data_loader
 
 def init_optim(opt,model):

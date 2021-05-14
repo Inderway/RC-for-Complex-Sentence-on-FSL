@@ -189,10 +189,10 @@ def get_data_loader(root, N, batch_num, support_size, query_size, mode):
     data_loader = Data.DataLoader(dataset, batch_size=1, collate_fn=collate_fn)
     return data_loader
 
-root='data/dict.json'
-data_loader=get_data_loader(root, 2, 1, 1, 1,'train')
-
-for data in data_loader:
-    print("ooooooooooooooooooooooooooooooo")
-    spt, qry, label=data
-    print(label[0])
+# root='data/dict.json'
+# data_loader=get_data_loader(root, 2, 1, 1, 1,'train')
+#
+# for data in data_loader:
+#     print("ooooooooooooooooooooooooooooooo")
+#     spt, qry, label=data
+#     print(label[0])
