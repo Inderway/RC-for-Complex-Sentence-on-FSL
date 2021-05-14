@@ -14,23 +14,24 @@ from transformers import BertTokenizer
 
 class NYTDataset(Data.Dataset):
     def __init__(self, root, N, batch_num, support_shot, query_shot, mode):
-        self.root=root
+        self.root = root
         self.N = N
+        self.support_shot=support_shot
+        self.query_shot=query_shot
         path = root
         if not os.path.exists(path):
             print("[ERROR] Data file does not exist!")
             assert 0
-        if support_shot<=0 or query_shot<=0:
+        if support_shot <= 0 or query_shot <= 0:
             print("[ERROR] support shots and query shots must be larger than 0!")
             assert 0
         self.Data = json.load(open(path))
         self.classes = list(self.Data.keys())
-        if mode=='train':
+        if mode == 'train':
             self.classes = self.classes[:17]
         else:
-            self.classes=self.classes[17:22]
-        self.batch_num=batch_num
-
+            self.classes = self.classes[17:22]
+        self.batch_num = batch_num
 
         # sentence=self.json_data[self.classes[0]][0]['sentText']
         # print(sentence)
@@ -50,142 +51,148 @@ class NYTDataset(Data.Dataset):
     def __getitem__(self, index):
         tokenzier = BertTokenizer.from_pretrained('bert-base-cased')
         target_classes = random.sample(self.classes, self.N)
-        sentences = []
-        sentences_of_first_class = []
-        idx_of_instances_in_first_class = []
-        sentences_of_second_class = []
-        idx_of_instances_in_second_class = []
+        sentences = [[] for i in range(self.N)]
+        # index of instance sentence
+        idx_of_instances=[[] for i in range(self.N)]
         labels = []
+        for i in range(len(target_classes)):
+            for sent in self.Data[target_classes[i]]:
+                sentences[i].append(sent['sentText'])
+        idx_val=[[] for i in range(self.N)]
+        for i in range(len(target_classes)):
+            idx_val[i]=random.sample(list(enumerate(sentences[i])), self.support_shot+self.query_shot)
+        sample_sentences=[]
+        for i, i_v in enumerate(idx_val):
+            for ints in i_v:
+                idx_of_instances[i].append(ints[0])
+                sample_sentences.append(ints[1])
+        print("class: {}, sentenceID: {}".format(target_classes[0], idx_of_instances[0][0]))
+        print(sample_sentences[0])
 
-        for sent in self.Data[target_classes[0]]:
-            sentences_of_first_class.append(sent['sentText'])
-        for sent in self.Data[target_classes[1]]:
-            sentences_of_second_class.append(sent['sentText'])
-        idx_val_1 = random.sample(list(enumerate(sentences_of_first_class)), 17)
-        idx_val_2 = random.sample(list(enumerate(sentences_of_second_class)), 18)
-        # idx_val_1 = idx_sample_1[:12]
-        # idx_val_2 = idx_sample_2[:13]
-        # idx_val_query_1 = idx_sample_1[12:]
-        # idx_val_query_2 = idx_sample_2[13:]
-
-        for idx, val in idx_val_1:
-            idx_of_instances_in_first_class.append(idx)
-            sentences.append(val)
-        for idx, val in idx_val_2:
-            idx_of_instances_in_second_class.append(idx)
-            sentences.append(val)
-
-        print("class: {}, sentenceID: {}".format(target_classes[0],idx_of_instances_in_first_class[0]))
-        print(sentences[0])
-        # for c in target_classes:
-        #     sents = []
-        #     print(c)
-        #     for sent in self.Data[c]:
-        #         sents.append(sent['sentText'])
-        #     if len(sentences)<12:
-        #         sentences.extend(random.sample(sents,12))
-        #     else:
-        #         sentences.extend(random.sample(sents,13))
         max_len = 0
-
+        shots=self.support_shot+self.query_shot
         # get labels from support set and get max_len
-        for i in range(len(sentences)):
-            sentences[i] = tokenzier.convert_tokens_to_ids(tokenzier.tokenize(sentences[i]))
-            max_len = max(max_len, len(sentences[i]))
-            if (11 < i < 17) or (i > 29):
-                continue
-            c = target_classes[0] if i < 17 else target_classes[1]
-            idx = idx_of_instances_in_first_class[i] if i < 17 else idx_of_instances_in_second_class[i - 17]
-            for rel in self.Data[c][idx]['relationMentions']:
-                if rel['label'] not in labels:
-                    labels.append(rel['label'])
+        for n in range(self.N):
+            for i in range(n*shots,(n+1)*shots):
+                sample_sentences[i] = tokenzier.convert_tokens_to_ids(tokenzier.tokenize(sample_sentences[i]))
+                max_len = max(max_len, len(sample_sentences[i]))
+                if shots*n+self.support_shot<=i<shots*n+shots:
+                    continue
+                c = target_classes[n]
+                idx=idx_of_instances[n][i-n*shots]
+                for rel in self.Data[c][idx]['relationMentions']:
+                    if rel['label'] not in labels:
+                        labels.append(rel['label'])
+
         label_num = len(labels)
-        self.labels=labels
-        print(max_len)
-        # print(sentences)
+        self.labels = labels
+        print('max_len is: {}'.format(max_len))
         mask = []
         entities = []
         context = []
         label = []
-        for i in range(len(sentences)):
-            tmp_mask = len(sentences[i]) * [1]
-            if len(sentences[i]) < max_len:
-                padding = (max_len - len(sentences[i])) * [0]
-                sentences[i].extend(padding)
-                tmp_mask.extend(padding)
-            mask.append(tmp_mask)
+        for n in range(self.N):
+            for i in range(n*shots,(n+1)*shots):
+                tmp_mask = len(sample_sentences[i]) * [1]
+                if len(sample_sentences[i]) < max_len:
+                    padding = (max_len - len(sample_sentences[i])) * [0]
+                    sample_sentences[i].extend(padding)
+                    tmp_mask.extend(padding)
+                mask.append(tmp_mask)
 
-            c = target_classes[0] if i < 17 else target_classes[1]
-            idx = idx_of_instances_in_first_class[i] if i < 17 else idx_of_instances_in_second_class[i - 17]
-            # entities of sentence i
-            e_s = []
-            for ent in self.Data[c][idx]['entityMentions']:
-                if ent['text'] not in e_s:
-                    e_s.append(ent['text'])
-            # entity masks of sentence i
-            ents = np.zeros((len(e_s), max_len))
-            for id, ent in enumerate(e_s):
-                idxs = []
-                token = tokenzier.convert_tokens_to_ids(tokenzier.tokenize(ent))
-                for j in range(len(sentences[i])):
-                    if sentences[i][j: j + len(token)] == token:
-                        idxs.append((j, j + len(token)))
-                for start, end in idxs:
-                    ents[id][start:end] = 1
-            entities.append(torch.from_numpy(ents))
-            ctxt = np.zeros((len(ents), len(ents), max_len))
-            lb = np.zeros((len(ents), len(ents), label_num))
+                c = target_classes[n]
+                idx = idx_of_instances[n][i-n*shots]
+                # entities of sentence i
+                e_s = []
+                for ent in self.Data[c][idx]['entityMentions']:
+                    if ent['text'] not in e_s:
+                        e_s.append(ent['text'])
+                # entity masks of sentence i
+                ents = np.zeros((len(e_s), max_len))
+                for id, ent in enumerate(e_s):
+                    idxs = []
+                    token = tokenzier.convert_tokens_to_ids(tokenzier.tokenize(ent))
+                    for j in range(max_len+1-len(token)):
+                        if sample_sentences[i][j: j + len(token)] == token:
+                            idxs.append((j, j + len(token)))
+                    for start, end in idxs:
+                        ents[id][start:end] = 1
+                entities.append(torch.from_numpy(ents))
+                ctxt = np.zeros((len(ents), len(ents), max_len))
+                lb = np.zeros((len(ents), len(ents), label_num))
 
-            for id in range(len(ents)):
-                for j in range(len(ents)):
-                    if j == id:
-                        continue
-                    first = min(np.where(ents[id] == 1)[0][0], np.where(ents[j] == 1)[0][0])
-                    last = max(np.where(ents[id] == 1)[0][-1], np.where(ents[j] == 1)[0][-1])
-                    # if i == 0 and id == 0:
-                    #     print("i: {} j: {} first: {} last: {}".format(id, j, first, last))
-                    for k in range(first, last):
-                        if ents[id][k] == ents[j][k]:
-                            ctxt[id][j][k] = 1
-                    lb[id][j] = self.find_label(c, idx, e_s[id], e_s[j], labels)
-            # if i==0:
-            #     print("ctxt======================")
-            #     print(ctxt)
-            #     print("test====================")
-            #     print(np.where(ctxt[0][1]==1)[0])
-            context.append(torch.from_numpy(ctxt))
-            label.append(torch.from_numpy(lb))
+                for id in range(len(ents)):
+                    for j in range(len(ents)):
+                        if j == id:
+                            continue
+                        first = min(np.where(ents[id] == 1)[0][0], np.where(ents[j] == 1)[0][0])
+                        last = max(np.where(ents[id] == 1)[0][-1], np.where(ents[j] == 1)[0][-1])
+                        # if i == 0 and id == 0:
+                        #     print("i: {} j: {} first: {} last: {}".format(id, j, first, last))
+                        for k in range(first, last):
+                            if ents[id][k] == ents[j][k]:
+                                ctxt[id][j][k] = 1
+                        lb[id][j] = self.find_label(c, idx, e_s[id], e_s[j], labels)
+                # if i==0:
+                #     print("ctxt======================")
+                #     print(ctxt)
+                #     print("test====================")
+                #     print(np.where(ctxt[0][1]==1)[0])
+                context.append(torch.from_numpy(ctxt))
+                label.append(torch.from_numpy(lb))
 
         # print(sentences)
         # print(mask)
 
-        # print(entities[0])
-        # print('-----------------------------------------------------------------------------------------------')
-        # print(context[0])
-        # print('------------------------------------------------------------------------------------------------')
-        # print(labels)
-        # print(label[0])
-
-        support_set = torch.tensor(sentences[:12] + sentences[17:30]),torch.tensor(mask[:12] + mask[17:30]),entities[:12] + entities[17:30],context[:12] + context[17:30],label[:12] + label[17:30]
-        query_set = torch.tensor(sentences[12:17] + sentences[30:]),torch.tensor(mask[12:17] + mask[30:]),entities[12:17] + entities[30:],context[12:17] + context[30:],label[12:17] + label[30:]
+        print(entities[0])
+        print('-----------------------------------------------------------------------------------------------')
+        print(context[0])
+        print('------------------------------------------------------------------------------------------------')
+        print(labels)
+        print(label[0])
+        support_sentence=[]
+        query_sentence=[]
+        support_mask=[]
+        query_mask=[]
+        support_entities=[]
+        query_entities=[]
+        support_context=[]
+        query_context=[]
+        support_label=[]
+        query_label=[]
+        for n in range(self.N):
+            support_sentence+=sample_sentences[n*shots:shots*n+self.support_shot]
+            query_sentence+=sample_sentences[shots*n+self.support_shot:shots*n+shots]
+            support_mask+=mask[n*shots:shots*n+self.support_shot]
+            query_mask += mask[shots * n + self.support_shot:shots * n + shots]
+            support_entities+=entities[n*shots:shots*n+self.support_shot]
+            query_entities+=entities[shots * n + self.support_shot:shots * n + shots]
+            support_context+=context[n*shots:shots*n+self.support_shot]
+            query_context+=context[shots * n + self.support_shot:shots * n + shots]
+            support_label+=label[n*shots:shots*n+self.support_shot]
+            query_label+=label[shots * n + self.support_shot:shots * n + shots]
+        support_set = torch.tensor(support_sentence), torch.tensor(support_mask),support_entities, support_context, support_label
+        query_set = torch.tensor(query_sentence), torch.tensor(query_mask), query_entities, query_context, query_label
         return support_set, query_set, labels
 
     def __len__(self):
         return self.batch_num
 
+
 def collate_fn(data):
-    support_set, query_set, labels=zip(*data)
+    support_set, query_set, labels = zip(*data)
     return support_set, query_set, labels
 
-def get_data_loader(root, N, batch_num, support_size, query_size):
-    dataset=NYTDataset(root, N,batch_num, support_size,query_size)
-    data_loader=Data.DataLoader(dataset, batch_size=1, collate_fn=collate_fn)
+
+def get_data_loader(root, N, batch_num, support_size, query_size, mode):
+    dataset = NYTDataset(root, N, batch_num, support_size, query_size, mode)
+    data_loader = Data.DataLoader(dataset, batch_size=1, collate_fn=collate_fn)
     return data_loader
 
-# root='data/dict.json'
-# data_loader=get_data_loader(root, 2, 1, 25, 10)
-#
-# for data in data_loader:
-#     print("ooooooooooooooooooooooooooooooo")
-#     spt, qry, label=data
-#     print(label[0])
+root='data/dict.json'
+data_loader=get_data_loader(root, 2, 1, 1, 1,'train')
+
+for data in data_loader:
+    print("ooooooooooooooooooooooooooooooo")
+    spt, qry, label=data
+    print(label[0])
