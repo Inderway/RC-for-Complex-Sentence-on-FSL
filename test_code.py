@@ -97,12 +97,26 @@ dataset=Planetoid(root='data/tmp/Cora',name='Cora')
 # acc=correct/int(data.test_mask.sum())
 # print('Accuracy: {:.4f}'.format(acc))
 
+def get_seq_len(mask):
+    start=torch.where(mask>0)[0][0]
+    length=1
+    start+=1
+    while start<len(mask):
+        if mask[start]>0:
+            length+=1
+            start+=1
+        else:
+            break
+    return length
+
 d={1:1, 2:2, 3:3}
-l=[[1, 2], [3, 4], [1, 2]]
+l=[1, 1, 0, 1, 1]
 r=[[4,5], [5,6]]
-tu=[[1,2], [2,3], [2,5]]
+# 1x5x2
+tu=[[1,2], [2,3], [2,5], [3,4], [5,6]]
 l=torch.tensor(l)
 tu=torch.tensor(tu)
-print(l*tu)
+print(tu.shape)
+print(torch.unsqueeze(tu, 0).shape)
 
 

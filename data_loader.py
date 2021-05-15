@@ -5,6 +5,7 @@ Date: 2021/4/24
 """
 import torch
 import torch.utils.data as Data
+import torch.nn as nn
 import os
 import numpy as np
 import random
@@ -189,18 +190,48 @@ def get_data_loader(root, N, batch_num, support_size, query_size, mode):
     data_loader = Data.DataLoader(dataset, batch_size=1, collate_fn=collate_fn)
     return data_loader
 
+def get_aggregator(seq_len):
+    aggregator=nn.LSTM(seq_len, 1, 768)
+    return aggregator
+
+
 root='data/dict.json'
 data_loader=get_data_loader(root, 2, 1, 1, 1,'train')
-model=BertModel.from_pretrained('bert-base-cased', output_hidden_states=True)
+encoder=BertModel.from_pretrained('bert-base-cased', output_hidden_states=True)
+
 for data in data_loader:
     print("ooooooooooooooooooooooooooooooo")
     spt, qry, label=data
     support_set=spt[0]
     query_set=qry[0]
     labels=label[0]
-    output=model(support_set[0],support_set[1])
+    output=encoder(support_set[0],support_set[1])
     hidden_states=output[2][-1]
-    print(support_set[0].shape)
-    print(hidden_states.shape)
-    print(hidden_states[0][0][0:20])
+
+    # masks of first sentence's entities
+    h_0=torch.randn(2, 1, 100)
+    c_0=torch.randn(2, 1, 100)
+    for entity_mask in support_set[2][0]:
+        entity=[]
+        for i, val in enumerate(entity_mask):
+            if val==0 and len(entity)!=0:
+                break
+            else:
+                if val==0:
+                    continue
+                else:
+                    entity.append(list(hidden_states[0][i]))
+        seq_len=len(entity)
+        entity=torch.tensor(entity)
+        entity=torch.unsqueeze(entity,1)
+        print(entity.shape)
+        aggregator=nn.LSTM(768, 100, bidirectional=True)
+        output, (hn, cn)=aggregator(entity, (h_0, c_0))
+        print(hn.shape)
+        print(hn[0][0])
+
+
+    # print(support_set[0].shape)
+    # print(hidden_states.shape)
+    # print(hidden_states[0][0][0:20])
 
