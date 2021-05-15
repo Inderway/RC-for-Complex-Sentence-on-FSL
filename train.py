@@ -38,8 +38,6 @@ def init_model(opt):
     # FixME encoder
     encoder=BertModel.from_pretrained('bert-base-cased', output_hidden_states=True)
     # FixMe aggragator
-    h_0 = torch.randn(2, 1, opt.hidden_dim)
-    c_0 = torch.randn(2, 1, opt.hidden_dim)
     aggregator = nn.LSTM(768, opt.hidden_dim, bidirectional=True)
     #FixMe propagator
     propagator=GCNConv(opt.hidden_dim, opt.hidden_dim)
