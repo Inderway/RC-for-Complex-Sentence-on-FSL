@@ -9,7 +9,7 @@ import os
 import numpy as np
 import random
 import json
-from transformers import BertTokenizer
+from transformers import BertTokenizer, BertModel
 
 
 class NYTDataset(Data.Dataset):
@@ -189,10 +189,18 @@ def get_data_loader(root, N, batch_num, support_size, query_size, mode):
     data_loader = Data.DataLoader(dataset, batch_size=1, collate_fn=collate_fn)
     return data_loader
 
-# root='data/dict.json'
-# data_loader=get_data_loader(root, 2, 1, 1, 1,'train')
-#
-# for data in data_loader:
-#     print("ooooooooooooooooooooooooooooooo")
-#     spt, qry, label=data
-#     print(label[0])
+root='data/dict.json'
+data_loader=get_data_loader(root, 2, 1, 1, 1,'train')
+model=BertModel.from_pretrained('bert-base-cased', output_hidden_states=True)
+for data in data_loader:
+    print("ooooooooooooooooooooooooooooooo")
+    spt, qry, label=data
+    support_set=spt[0]
+    query_set=qry[0]
+    labels=label[0]
+    output=model(support_set[0],support_set[1])
+    hidden_states=output[2][-1]
+    print(support_set[0].shape)
+    print(hidden_states.shape)
+    print(hidden_states[0][0][0:20])
+

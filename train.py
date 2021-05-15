@@ -3,6 +3,7 @@ from FSMRE import FSMRE
 from FSMRE_loss import get_loss as loss_fn
 from parser_util import get_parser
 
+from transformers import BertModel
 import numpy as np
 from tqdm import tqdm
 import torch
@@ -33,6 +34,7 @@ def init_lr_scheduler(opt, optim):
 def init_model(opt):
     device = 'cuda:0' if torch.cuda.is_available() and opt.cuda else 'cpu'
     # todo: alter the parameters, add encoder, aggregator and propagator
+    encoder=BertModel.from_pretrained('bert-base-cased', output_hidden_states=True)
     model = FSMRE()#.to(device)
     return model
 
