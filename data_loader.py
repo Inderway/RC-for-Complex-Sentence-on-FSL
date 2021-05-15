@@ -13,6 +13,8 @@ import json
 from transformers import BertTokenizer, BertModel
 
 
+
+
 class NYTDataset(Data.Dataset):
     def __init__(self, root, N, batch_num, support_shot, query_shot, mode):
         self.root = root
@@ -190,10 +192,6 @@ def get_data_loader(root, N, batch_num, support_size, query_size, mode):
     data_loader = Data.DataLoader(dataset, batch_size=1, collate_fn=collate_fn)
     return data_loader
 
-def get_aggregator(seq_len):
-    aggregator=nn.LSTM(seq_len, 1, 768)
-    return aggregator
-
 
 root='data/dict.json'
 data_loader=get_data_loader(root, 2, 1, 1, 1,'train')
@@ -226,6 +224,7 @@ for data in data_loader:
         entity=torch.unsqueeze(entity,1)
         print(entity.shape)
         aggregator=nn.LSTM(768, 100, bidirectional=True)
+        # entity: seq_len*1*768
         output, (hn, cn)=aggregator(entity, (h_0, c_0))
         print(hn.shape)
         print(hn[0][0])

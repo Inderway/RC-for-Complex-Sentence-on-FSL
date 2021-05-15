@@ -10,7 +10,7 @@ from torch_geometric.nn import GCNConv
 import numpy as np
 
 
-# device=torch.device('cuda')
+device=torch.device('cuda')
 
 '''
 x=torch.tensor([[-1], [0], [1]], dtype=torch.float)
@@ -84,9 +84,13 @@ dataset=Planetoid(root='data/tmp/Cora',name='Cora')
 # optimizer=torch.optim.Adam(model.parameters(), lr=0.01, weight_decay=5e-4)
 #
 # model.train()
-# for epoch in range(200):
+# for epoch in range(10):
 #     optimizer.zero_grad()
 #     out=model(data)
+#     print("=====================data's shape")
+#     print(data.x.shape)
+#     print("oooooooooooooooooooooooout's shape")
+#     print(out.shape)
 #     loss=F.nll_loss(out[data.train_mask], data.y[data.train_mask])
 #     loss.backward()
 #     optimizer.step()
@@ -97,26 +101,26 @@ dataset=Planetoid(root='data/tmp/Cora',name='Cora')
 # acc=correct/int(data.test_mask.sum())
 # print('Accuracy: {:.4f}'.format(acc))
 
-def get_seq_len(mask):
-    start=torch.where(mask>0)[0][0]
-    length=1
-    start+=1
-    while start<len(mask):
-        if mask[start]>0:
-            length+=1
-            start+=1
-        else:
-            break
-    return length
-
-d={1:1, 2:2, 3:3}
-l=[1, 1, 0, 1, 1]
-r=[[4,5], [5,6]]
-# 1x5x2
-tu=[[1,2], [2,3], [2,5], [3,4], [5,6]]
-l=torch.tensor(l)
-tu=torch.tensor(tu)
-print(tu.shape)
-print(torch.unsqueeze(tu, 0).shape)
+# def get_seq_len(mask):
+#     start=torch.where(mask>0)[0][0]
+#     length=1
+#     start+=1
+#     while start<len(mask):
+#         if mask[start]>0:
+#             length+=1
+#             start+=1
+#         else:
+#             break
+#     return length
+#
+# d={1:1, 2:2, 3:3}
+# l=[1, 1, 0, 1, 1]
+# r=[[4,5], [5,6]]
+# # 1x5x2
+# tu=[[1,2], [2,3], [2,5], [3,4], [5,6]]
+# l=torch.tensor(l)
+# tu=torch.tensor(tu)
+# print(tu.shape)
+# print(torch.unsqueeze(tu, 0).shape)
 
 

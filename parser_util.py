@@ -56,6 +56,12 @@ def get_parser():
                         help='number of random classes per episode for training, default=60',
                         default=2)
 
+    # FixMe
+    # 嵌入空间维度
+    parser.add_argument('-hd', '--hidden_dim',
+                        type=int,
+                        help='dimension of embedding space',
+                        default=100)
 
     # 每个类的支持集样本数
     parser.add_argument('-nsTr', '--num_support_tr',
