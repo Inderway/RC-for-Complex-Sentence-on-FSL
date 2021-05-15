@@ -8,6 +8,7 @@ Remark: Wei
 import torch
 import torch.nn as nn
 from transformers import BertModel, BertTokenizer
+import numpy as np
 
 
 class FSMRE(nn.Module):
@@ -15,8 +16,8 @@ class FSMRE(nn.Module):
     few-shot multi-relation extraction
     """
 
-    def __init__(self, encoder=None, aggregator=None, propagator=None, hidden_dim=100, proto_dim=200, support_size=25,
-                 query_size=10, max_length=50) -> None:
+    def __init__(self, encoder, aggregator, propagator, hidden_dim=100, proto_dim=200, support_shot=1,
+                 query_shot=1, max_length=100) -> None:
         """
         Instantiates the layers of the network.
         :param input_size: the size of the input data
@@ -24,9 +25,9 @@ class FSMRE(nn.Module):
         """
         super(FSMRE, self).__init__()
         # the number of support instances inside a task
-        self.support_size = support_size
+        self.support_shot = support_shot
         # the number of query instances inside a task
-        self.query_size = query_size
+        self.query_shot = query_shot
         # the max length of sentences
         self.max_length = max_length
 
@@ -40,14 +41,19 @@ class FSMRE(nn.Module):
 
         self.propagator = propagator
 
-        # attention_layer
-        self.rel_aware_att_layer = nn.Sequential(
-            # 300x100
-            nn.Linear(self.hidden_dim + self.proto_dim, self.hidden_dim),
-            nn.Sigmoid()
-        )
+        h_0 = torch.randn(2, 1, hidden_dim)
+        c_0 = torch.randn(2, 1, hidden_dim)
+        self.h0=h_0
+        self.c0=c_0
 
-    def forward(self, support_set, query_set):
+        # # attention_layer
+        # self.rel_aware_att_layer = nn.Sequential(
+        #     # 300x100
+        #     nn.Linear(self.hidden_dim + self.proto_dim, self.hidden_dim),
+        #     nn.Sigmoid()
+        # )
+
+    def forward(self, support_set, query_set, labels):
         """
         generate prototype embedding from support set, and conduct prediction for query_set
         Args:
@@ -70,16 +76,13 @@ class FSMRE(nn.Module):
         # get prototype embedding for each class
         # size: class_size * self.prototype_size
 
-        # prototype = self._process_support(support_set)
-        # prediction = self._process_query(prototype, query_set)
+        prototype, context_center= self._process_support(support_set, labels)
+        prediction = self._process_query(prototype, query_set)
 
-        # FixMe
-        _prediction=[]
-        for sentence in support_set[4]:
-            _prediction.append(torch.rand(sentence.shape))
-        return _prediction
 
-    def _process_support(self, support_set):
+        return prediction
+
+    def _process_support(self, support_set, labels):
         """
         generate prototype embedding for each class
         Args:
@@ -93,17 +96,25 @@ class FSMRE(nn.Module):
             support_set
         """
 
-        '''Step 0 & 1: encoding and propagation'''
-        batch_entities, batch_context = self._encode_aggregation(support_set)
 
-        '''Step 2: general propagation '''
-        batch_entities, batch_context = self.propagator(batch_entities, batch_context)
+
+        '''Step 0 & 1: encoding and propagation'''
+        # label_num*instance_num*proto_dim
+        batch_entities, batch_context = self.encoding_aggregation(support_set, labels)
+
+        # '''Step 2: general propagation ''
+
+        # batch_entities, batch_context = self.propagator(batch_entities, batch_context)
 
         '''Step 3: obtain prototype embedding'''
         # todo: get prototype from batch_entities
-        prototype = None
-
-        return prototype
+        prototype = [[] for i in range(len(labels))]
+        context_center=[[] for i in range(len(labels))]
+        for i, val in enumerate(batch_entities):
+            prototype[i]=torch.tensor(np.mean(val,axis=0))
+        for i, val in enumerate(batch_context):
+            context_center[i]=torch.tensor(np.mean(val, axis=0))
+        return prototype, context_center
 
     def _process_query(self, prototype, query_set):
         """
@@ -132,13 +143,15 @@ class FSMRE(nn.Module):
 
         return prediction
 
-    def _encode_aggregation(self, input_set):
+    def encoding_aggregation(self, input_set, labels):
         """
         general processing of support_set or query_set
         Args:
             input_set (tuple): support_set or query_set
         Returns:
         batch_entities, batch_contexts
+        :param input_set:
+        :param labels:
         """
         # output of encoder:
         # - 0. the last hidden state (batch_size, sequence_length, hidden_size)
@@ -149,38 +162,83 @@ class FSMRE(nn.Module):
         '''Step 0: encoding '''
         # [-1] for the last layer representation -> size: sentence_num * max_length * h_dim(768)
         # get the encodings of the tokens in the sentences
+        # sentence_num*max_len*768
         encodings = self.encoder(input_set[0], input_set[1])[2][-1]
 
         '''Step 1 - 1: entity aggregation'''
         # sequencial_processing: process entity
-        # todo: parallelization in entity aggregation
-        batch_entities = []
-        for i, entities_list in enumerate(input_set[2]):
-            # encodings of the sentence, i is the index of sentences
-            s_encodings = encodings[i]
-            s_ent_list = []
-            # entities_list: entity_num * entity_mask
-            for ent_mask in entities_list:
-                # append the weights of nodes in relaiton graph
-                s_ent_list.append(self._aggregate_entity(s_encodings, ent_mask))
-            pass
-            # append(Tensor_size: num_entities * self.hidden_size)
-            batch_entities.append(torch.cat(s_ent_list))
-        pass
+        label_num=len(labels)
+        # [ [] entity_pair_num ,[],[]  ] label_num
+        batch_entities = [[] for i in range(label_num)]
+        batch_context=batch_entities
+        # input_set[4]:sentence_num*entity_num*entity_num*label_num
 
-        '''Step 1 - 2: context aggregation'''
-        batch_context = []
-        # todo: parallelization in context aggregation
-        for i, context_matrix in enumerate(input_set[3]):
-            # context_matrix size: num_ent * num_ent * max_length
-            s_encodings = encodings[i]  # size: max_length * encoding_dim
+        entity_embedding_dic={}
+        context_embedding_dic={}
 
-            # todo: masked_context = context_matrix * s_encodings # num_ent * num_ent * max_length * encoding_dim
-            batch_context.append(self._aggregate_context(s_encodings, context_matrix))  # todo: debug
-            pass
-        pass
-
+        for sentence_id, sentence_label in enumerate(input_set[4]):
+            for entity_id, entity_1 in enumerate(sentence_label):
+                for entity_id_2, pair_label in enumerate(entity_1):
+                    if entity_id==entity_id_2:
+                        continue
+                    for label_id in range(label_num):
+                        if pair_label[label_id]==1:
+                            if (sentence_id, entity_id) not in entity_embedding_dic:
+                                entity=[]
+                                # input_set[2]: sentence_num*entity_num*max_len
+                                for j, val in enumerate(input_set[2][sentence_id][entity_id]):
+                                    if val == 0 and len(entity) != 0:
+                                        break
+                                    else:
+                                        if val == 0:
+                                            continue
+                                        else:
+                                            entity.append(list(encodings[sentence_id][j]))
+                                entity = torch.tensor(entity)
+                                entity = torch.unsqueeze(entity, 1)
+                                output, (hn, cn)=self.aggregator(entity, (self.h0, self.c0))
+                                embedding=(hn[0]+hn[1])/2.0
+                                entity_embedding_dic[(sentence_id, entity_id)]=embedding
+                            if (sentence_id, entity_id_2) not in entity_embedding_dic:
+                                entity = []
+                                # input_set[2]: sentence_num*entity_num*max_len
+                                for j, val in enumerate(input_set[2][sentence_id][entity_id_2]):
+                                    if val == 0 and len(entity) != 0:
+                                        break
+                                    else:
+                                        if val == 0:
+                                            continue
+                                        else:
+                                            entity.append(list(encodings[sentence_id][j]))
+                                entity = torch.tensor(entity)
+                                entity = torch.unsqueeze(entity, 1)
+                                output, (hn, cn) = self.aggregator(entity, (self.h0, self.c0))
+                                embedding = (hn[0] + hn[1]) / 2.0
+                                entity_embedding_dic[(sentence_id, entity_id_2)] = embedding
+                            if (sentence_id, entity_id, entity_id_2) not in context_embedding_dic:
+                                context=[]
+                                for j, val in enumerate(input_set[3][sentence_id][entity_id][entity_id_2]):
+                                    if val == 0 and len(entity) != 0:
+                                        break
+                                    else:
+                                        if val == 0:
+                                            continue
+                                        else:
+                                            context.append(list(encodings[sentence_id][j]))
+                                context=torch.tensor(context)
+                                context=torch.unsqueeze(context, 1)
+                                output, (hn, cn) = self.aggregator(entity, (self.h0, self.c0))
+                                embedding = (hn[0] + hn[1]) / 2.0
+                                context_embedding_dic[(sentence_id, entity_id, entity_id_2)] = embedding
+                                context_embedding_dic[(sentence_id, entity_id_2, entity_id)] = embedding
+                            batch_entities[label_id].append(torch.cat(entity_embedding_dic[(sentence_id, entity_id)],
+                                                                      entity_embedding_dic[(sentence_id, entity_id_2)]))
+                            batch_context[label_id].append(context_embedding_dic[(sentence_id, entity_id, entity_id_2)])
         return batch_entities, batch_context
+
+
+
+
 
     def _aggregate_entity(self, sentence_encodings, entity_mask):
         """

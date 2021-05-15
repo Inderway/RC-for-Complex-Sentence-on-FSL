@@ -227,10 +227,10 @@ for data in data_loader:
         # entity: seq_len*1*768
         output, (hn, cn)=aggregator(entity, (h_0, c_0))
         print(hn.shape)
-        print(hn[0][0])
+        print((hn[0]+hn[1])/2.0)
 
 
-    # print(support_set[0].shape)
-    # print(hidden_states.shape)
-    # print(hidden_states[0][0][0:20])
+    print(support_set[0].shape)
+    print(hidden_states.shape)
+    print(hidden_states[0][0][0:20])
 

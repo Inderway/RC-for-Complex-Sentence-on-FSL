@@ -35,11 +35,11 @@ def init_lr_scheduler(opt, optim):
 
 def init_model(opt):
     device = 'cuda:0' if torch.cuda.is_available() and opt.cuda else 'cpu'
-    # FixME encoder
+    # FixMe encoder
     encoder=BertModel.from_pretrained('bert-base-cased', output_hidden_states=True)
     # FixMe aggragator
     aggregator = nn.LSTM(768, opt.hidden_dim, bidirectional=True)
-    #FixMe propagator
+    # FixMe propagator
     propagator=GCNConv(opt.hidden_dim, opt.hidden_dim)
     model = FSMRE(encoder=encoder, aggregator=aggregator, propagator=propagator)#.to(device)
     return model

@@ -113,14 +113,22 @@ dataset=Planetoid(root='data/tmp/Cora',name='Cora')
 #             break
 #     return length
 #
-# d={1:1, 2:2, 3:3}
-# l=[1, 1, 0, 1, 1]
-# r=[[4,5], [5,6]]
-# # 1x5x2
-# tu=[[1,2], [2,3], [2,5], [3,4], [5,6]]
-# l=torch.tensor(l)
-# tu=torch.tensor(tu)
-# print(tu.shape)
-# print(torch.unsqueeze(tu, 0).shape)
+d={1:1, 2:2, 3:3}
+l=[1, 1, 0, 1, 1]
+r=[[4,5], [5,6]]
+# 1x5x2
+tu=[[[1,2,3], [4,5,6]], [[2,3,5], [2,5,6], [1,2,3]]]
+l=torch.tensor(l)
+
+dic={}
+dic[(1,2,3)]=1
+dic[(2,1,2)]=2
+re=[[],[]]
+for i, u in enumerate(tu):
+    re[i]=np.mean(u, axis=0)
+re=torch.tensor(re)
+print(re)
+
+
 
 
