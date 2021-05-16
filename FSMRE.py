@@ -72,12 +72,13 @@ class FSMRE(nn.Module):
         Returns:
             prediction: [torch.Tensor], sentence_num * entity_num * entity_num * class_size
             query_set[4]: [torch.Tensor], sentence_num * entity_num * entity_num
+            :param labels:
         """
         # get prototype embedding for each class
         # size: class_size * self.prototype_size
 
         prototype, context_center= self._process_support(support_set, labels)
-        prediction = self._process_query(prototype, query_set)
+        prediction = self._process_query(prototype, context_center, query_set, labels)
 
 
         return prediction
@@ -116,7 +117,7 @@ class FSMRE(nn.Module):
             context_center[i]=torch.tensor(np.mean(val, axis=0))
         return prototype, context_center
 
-    def _process_query(self, prototype, query_set):
+    def _process_query(self, prototype, context_center, query_set, labels):
         """
         generate predictions for query instances
         Args:
@@ -126,16 +127,18 @@ class FSMRE(nn.Module):
             predictions
         """
         '''Step 0 & 1: encoding and propagation'''
-        batch_entities, batch_context = self._encode_aggregation(query_set)
+        batch_entities, batch_context = self.encoding_aggregation(query_set, labels)
 
         '''Step 2: general propagation '''
+        prediction=[[[[] for k in query_set[4][0]] for j in query_set[4][0]] for i in range(len(query_set[4]))]
+        gcn_result=[[] for i in range(len(labels))]
+        for c, c_pairs in batch_entities:
+            for entity_pair in c_pairs:
+
         batch_entities, batch_context = self.propagator(batch_entities, batch_context)
 
         '''Step 3: relation-aware propagation'''
-        rel_att = self._relation_aware_attention(prototype, batch_context)
-        # weight the context
-        batch_context = rel_att * batch_context
-        batch_entities, batch_context = self.propagator(batch_entities, batch_context)
+
 
         '''Step 4: prototype-based classification'''
         # todo: get prototype from batch_entities

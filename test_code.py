@@ -60,74 +60,70 @@ from torch_geometric.datasets import Planetoid
 dataset=Planetoid(root='data/tmp/Cora',name='Cora')
 '''
 
-# # GCN on Cora
-# dataset=Planetoid(root='data/tmp/Cora', name='Cora')
-#
-# # two-layer GCN
-#
-# class Net(torch.nn.Module):
-#     def __init__(self):
-#         super(Net, self).__init__()
-#         self.conv1=GCNConv(dataset.num_node_features, 16)
-#         self.conv2=GCNConv(16, dataset.num_classes)
-#
-#     def forward(self, data):
-#         x, edge_index=data.x, data.edge_index
-#         x=self.conv1(x, edge_index)
-#         x=F.relu(x)
-#         x=F.dropout(x, training=self.training)
-#         x=self.conv2(x, edge_index)
-#         return F.log_softmax(x, dim=1)
-#
-# model=Net().to(device)
-# data=dataset[0].to(device)
-# optimizer=torch.optim.Adam(model.parameters(), lr=0.01, weight_decay=5e-4)
-#
-# model.train()
-# for epoch in range(10):
-#     optimizer.zero_grad()
-#     out=model(data)
-#     print("=====================data's shape")
-#     print(data.x.shape)
-#     print("oooooooooooooooooooooooout's shape")
-#     print(out.shape)
-#     loss=F.nll_loss(out[data.train_mask], data.y[data.train_mask])
-#     loss.backward()
-#     optimizer.step()
-#
-# model.eval()
-# _, pred=model(data).max(dim=1)
-# correct=int(pred[data.test_mask].eq(data.y[data.test_mask]).sum().item())
-# acc=correct/int(data.test_mask.sum())
-# print('Accuracy: {:.4f}'.format(acc))
+# GCN on Cora
+dataset=Planetoid(root='data/tmp/Cora', name='Cora')
 
-# def get_seq_len(mask):
-#     start=torch.where(mask>0)[0][0]
-#     length=1
-#     start+=1
-#     while start<len(mask):
-#         if mask[start]>0:
-#             length+=1
-#             start+=1
-#         else:
-#             break
-#     return length
-#
-d={1:1, 2:2, 3:3}
-l=[1, 1, 0, 1, 1]
-r=[[4,5], [5,6]]
-# 1x5x2
-tu=[[[1,2,3], [4,5,6]], [[2,3,5], [2,5,6], [1,2,3]]]
-l=torch.tensor(l)
+# two-layer GCN
 
-dic={}
-dic[(1,2,3)]=1
-dic[(2,1,2)]=2
-re=[[],[]]
-for i, u in enumerate(tu):
-    re[i]=np.mean(u, axis=0)
-re=torch.tensor(re)
-print(re)
+class Net(torch.nn.Module):
+    def __init__(self):
+        super(Net, self).__init__()
+        self.conv1=GCNConv(dataset.num_node_features, 16)
+        self.conv2=GCNConv(16, dataset.num_classes)
+        edge=[3 for i in range(dataset[0].num_edges)]
+        self.edge_weight=torch.tensor(edge, dtype=torch.float).to(device)
+        print("---------------------------egde's shape")
+        print(self.edge_weight.shape)
+
+    def forward(self, data):
+        x, edge_index=data.x, data.edge_index
+
+
+        x=self.conv1(x, edge_index, self.edge_weight)
+        x=F.relu(x)
+        x=F.dropout(x, training=self.training)
+        x=self.conv2(x, edge_index,self.edge_weight)
+        return F.log_softmax(x, dim=1)
+
+data=dataset[0].to(device)
+model=Net().to(device)
+optimizer=torch.optim.Adam(model.parameters(), lr=0.01, weight_decay=5e-4)
+
+model.train()
+for epoch in range(10):
+    optimizer.zero_grad()
+    out=model(data)
+    print("=====================data's shape")
+    print(data.x.shape)
+    print("oooooooooooooooooooooooout's shape")
+    print(out.shape)
+    loss=F.nll_loss(out[data.train_mask], data.y[data.train_mask])
+    loss.backward()
+    optimizer.step()
+
+model.eval()
+_, pred=model(data).max(dim=1)
+correct=int(pred[data.test_mask].eq(data.y[data.test_mask]).sum().item())
+acc=correct/int(data.test_mask.sum())
+print('Accuracy: {:.4f}'.format(acc))
+
+
+#
+# d={1:1, 2:2, 3:3}
+# l=[1, 1, 0, 1, 1]
+# r=[[4,5], [5,6]]
+# # 1x5x2
+# tu=[[[1,2,3], [4,5,6]], [[2,3,5], [2,5,6], [1,2,3]]]
+# l=torch.tensor(l)
+#
+# dic={}
+# dic[(1,2,3)]=1
+# dic[(2,1,2)]=2
+# re=[[],[]]
+# for i, u in enumerate(tu):
+#     re[i]=np.mean(u, axis=0)
+# re=torch.tensor(re)
+# print(re)
 
 
 
