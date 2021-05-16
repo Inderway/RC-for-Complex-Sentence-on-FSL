@@ -7,9 +7,12 @@ Remark: Wei
 
 import torch
 import torch.nn as nn
-from transformers import BertModel, BertTokenizer
 import numpy as np
+from math import exp
 
+
+def euclid_distance(x, y):
+    return torch.pow(x-y, 2).sum().float().item()
 
 class FSMRE(nn.Module):
     """
@@ -77,10 +80,8 @@ class FSMRE(nn.Module):
         # get prototype embedding for each class
         # size: class_size * self.prototype_size
 
-        prototype, context_center= self._process_support(support_set, labels)
-        prediction = self._process_query(prototype, context_center, query_set, labels)
-
-
+        prototype, context_center, instances_count= self._process_support(support_set, labels)
+        prediction = self._process_query(prototype, context_center, query_set, labels, instances_count)
         return prediction
 
     def _process_support(self, support_set, labels):
@@ -101,8 +102,10 @@ class FSMRE(nn.Module):
 
         '''Step 0 & 1: encoding and propagation'''
         # label_num*instance_num*proto_dim
-        batch_entities, batch_context = self.encoding_aggregation(support_set, labels)
-
+        batch_entities, batch_context= self.encoding_aggregation(support_set, labels, 'support')
+        instances_count=[]
+        for label_instances in batch_entities:
+            instances_count.append(len(label_instances))
         # '''Step 2: general propagation ''
 
         # batch_entities, batch_context = self.propagator(batch_entities, batch_context)
@@ -115,9 +118,9 @@ class FSMRE(nn.Module):
             prototype[i]=torch.tensor(np.mean(val,axis=0))
         for i, val in enumerate(batch_context):
             context_center[i]=torch.tensor(np.mean(val, axis=0))
-        return prototype, context_center
+        return prototype, context_center, instances_count
 
-    def _process_query(self, prototype, context_center, query_set, labels):
+    def _process_query(self, prototype, context_center, query_set, labels, instances_count):
         """
         generate predictions for query instances
         Args:
@@ -126,27 +129,57 @@ class FSMRE(nn.Module):
         Returns:
             predictions
         """
+        instance_num=0
+        for instance_c in instances_count:
+            instance_num+=instance_c
         '''Step 0 & 1: encoding and propagation'''
-        batch_entities, batch_context = self.encoding_aggregation(query_set, labels)
+        entitity_dic, context_dic = self.encoding_aggregation(query_set, labels, 'query')
 
         '''Step 2: general propagation '''
-        prediction=[[[[] for k in query_set[4][0]] for j in query_set[4][0]] for i in range(len(query_set[4]))]
-        gcn_result=[[] for i in range(len(labels))]
-        for c, c_pairs in batch_entities:
-            for entity_pair in c_pairs:
 
-        batch_entities, batch_context = self.propagator(batch_entities, batch_context)
+        prediction=[[[[0 for m in range(len(labels))] for k in range(len(query_set[4][i]))] for j in range(len(query_set[4][i]))] for i in range(len(query_set[4]))]
+        for i in range(len(query_set[0])):
+            x=[]
+            entity_num=len(query_set[2][i])
+            edge_index = [[], []]
+            for j in range(entity_num):
+                x.append(entitity_dic[(i,j)])
+                for delta in range(1, entity_num-j):
+                    edge_index[0].append(j)
+                    edge_index[0].append(j+delta)
+                    edge_index[1].append(j + delta)
+                    edge_index[1].append(j)
+            x=torch.tensor(x)
+            edge_index=torch.tensor(edge_index)
 
-        '''Step 3: relation-aware propagation'''
 
-
-        '''Step 4: prototype-based classification'''
-        # todo: get prototype from batch_entities
-        prediction = None
+            # each relation
+            for k in range(len(labels)):
+                edge_weight = []
+                for j in range(0, len(edge_index[0]), 2):
+                    edge_weight.append(1.0/euclid_distance(
+                        context_dic[(i, j, edge_index[1][j])],
+                        context_center[k]
+                    ))
+                edge_weight=torch.tensor(edge_weight)
+                out=self.propagator(x, edge_index, edge_weight)
+                for j in range(len(edge_index[0])):
+                    pred_embedding=torch.cat(out[j],out[edge_index[1][j]])
+                    sum=0.0
+                    for l in range(len(labels)):
+                        if l==k:
+                            continue
+                        # FixMe limit function
+                        sum+=exp(euclid_distance(pred_embedding, prototype[l])+float(instances_count[l])/float(instance_num-instances_count[l]))
+                    numerator=exp(euclid_distance(pred_embedding, prototype[k])+float(instances_count[k])/float(instance_num-instances_count[k]))
+                    prediction[i][j][edge_index[1][j]][k]=numerator/(numerator+sum)
+        for i in range(len(prediction)):
+            prediction[i]=torch.tensor(prediction[i])
 
         return prediction
 
-    def encoding_aggregation(self, input_set, labels):
+
+    def encoding_aggregation(self, input_set, labels, mode):
         """
         general processing of support_set or query_set
         Args:
@@ -237,42 +270,8 @@ class FSMRE(nn.Module):
                             batch_entities[label_id].append(torch.cat(entity_embedding_dic[(sentence_id, entity_id)],
                                                                       entity_embedding_dic[(sentence_id, entity_id_2)]))
                             batch_context[label_id].append(context_embedding_dic[(sentence_id, entity_id, entity_id_2)])
-        return batch_entities, batch_context
+        if mode=='support':
+            return batch_entities, batch_context
+        else:
+            return  entity_embedding_dic, context_embedding_dic
 
-
-
-
-
-    def _aggregate_entity(self, sentence_encodings, entity_mask):
-        """
-        generate entity encoding from sentence encodings.
-        Args:
-            sentence_encodings (torch.Tensor): sentence encodings
-            entity_mask (torch.Tensor): context_mask
-        Returns:
-            node-weight (entity embedding) for relation graph
-        """
-        return self.aggregator(sentence_encodings, entity_mask)
-
-    def _aggregate_context(self, sentence_encodings, context_mask):
-        """
-        generate pair-wise context encodings from sentence encodings.
-        Args:
-            sentence_encodings (torch.Tensor): sentence encodings
-            context_mask (torch.Tensor): context_mask
-        Returns:
-            edge-weight (context embedding) for relation graph
-        """
-        return self.aggregator(sentence_encodings, context_mask)
-
-    def _relation_aware_attention(self, prototype, weight):
-        """
-        calculate attention weight for relation-aware propagation
-        Args:
-            prototype (torch.Tensor): prototype embedding
-            weight (torch.Tensor): edge-weight (context embedding) for relation graph
-        Returns:
-            attention weight
-        """
-        # todo: expand prototype
-        return self.rel_aware_att_layer()
