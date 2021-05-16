@@ -125,12 +125,13 @@ dataset=Planetoid(root='data/tmp/Cora',name='Cora')
 #
 d=[2,2,1,2,2]
 l=[1, 1, 0, 1, 1]
-r=[[4,5], [5,6]]
-prediction=[[[[0 for m in range(5)] for k in range(4)] for j in range(4)] for i in range(2)]
-prediction=torch.tensor(prediction)
-loss=torch.tensor(1)
-loss=torch.tensor(5)+loss
-print(loss)
+r1=torch.tensor([1,2])
+r2=torch.tensor([3,4])
+a=[r1.unsqueeze(0), r2.unsqueeze(0)]
+b=torch.cat(a, dim=0)
+
+
+print(b)
 
 
 

@@ -69,8 +69,8 @@ class NYTDataset(Data.Dataset):
             for ints in i_v:
                 idx_of_instances[i].append(ints[0])
                 sample_sentences.append(ints[1])
-        print("class: {}, sentenceID: {}".format(target_classes[0], idx_of_instances[0][0]))
-        print(sample_sentences[0])
+        # print("class: {}, sentenceID: {}".format(target_classes[0], idx_of_instances[0][0]))
+        # print(sample_sentences[0])
 
         max_len = 0
         shots=self.support_shot+self.query_shot
@@ -147,12 +147,12 @@ class NYTDataset(Data.Dataset):
         # print(sentences)
         # print(mask)
 
-        print(entities[0])
-        print('-----------------------------------------------------------------------------------------------')
-        print(context[0])
-        print('------------------------------------------------------------------------------------------------')
-        print(labels)
-        print(label[0])
+        # print(entities[0])
+        # print('-----------------------------------------------------------------------------------------------')
+        # print(context[0])
+        # print('------------------------------------------------------------------------------------------------')
+        # print(labels)
+        # print(label[0])
         support_sentence=[]
         query_sentence=[]
         support_mask=[]
