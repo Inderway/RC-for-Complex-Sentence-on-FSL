@@ -128,7 +128,9 @@ l=[1, 1, 0, 1, 1]
 r=[[4,5], [5,6]]
 prediction=[[[[0 for m in range(5)] for k in range(4)] for j in range(4)] for i in range(2)]
 prediction=torch.tensor(prediction)
-print(prediction.shape)
+loss=torch.tensor(1)
+loss=torch.tensor(5)+loss
+print(loss)
 
 
 

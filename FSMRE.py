@@ -137,7 +137,7 @@ class FSMRE(nn.Module):
 
         '''Step 2: general propagation '''
 
-        prediction=[[[[0 for m in range(len(labels))] for k in range(len(query_set[4][i]))] for j in range(len(query_set[4][i]))] for i in range(len(query_set[4]))]
+        prediction=[[[[[0 for n in range(len(labels))] for m in range(len(labels))] for k in range(len(query_set[4][i]))] for j in range(len(query_set[4][i]))] for i in range(len(query_set[4]))]
         for i in range(len(query_set[0])):
             x=[]
             entity_num=len(query_set[2][i])
@@ -165,14 +165,15 @@ class FSMRE(nn.Module):
                 out=self.propagator(x, edge_index, edge_weight)
                 for j in range(len(edge_index[0])):
                     pred_embedding=torch.cat(out[j],out[edge_index[1][j]])
-                    sum=0.0
-                    for l in range(len(labels)):
-                        if l==k:
-                            continue
-                        # FixMe limit function
-                        sum+=exp(euclid_distance(pred_embedding, prototype[l])+float(instances_count[l])/float(instance_num-instances_count[l]))
-                    numerator=exp(euclid_distance(pred_embedding, prototype[k])+float(instances_count[k])/float(instance_num-instances_count[k]))
-                    prediction[i][j][edge_index[1][j]][k]=numerator/(numerator+sum)
+                    for n in range(len(labels)):
+                        sum=0.0
+                        for l in range(len(labels)):
+                            if l==n:
+                                continue
+                            # FixMe limit function
+                            sum+=exp(euclid_distance(pred_embedding, prototype[l])+float(instances_count[l])/float(instance_num-instances_count[l]))
+                        numerator=exp(euclid_distance(pred_embedding, prototype[n])+float(instances_count[n])/float(instance_num-instances_count[n]))
+                        prediction[i][j][edge_index[1][j]][k][n]=numerator/(numerator+sum)
         for i in range(len(prediction)):
             prediction[i]=torch.tensor(prediction[i])
 
@@ -234,6 +235,7 @@ class FSMRE(nn.Module):
                                 entity = torch.unsqueeze(entity, 1)
                                 output, (hn, cn)=self.aggregator(entity, (self.h0, self.c0))
                                 embedding=(hn[0]+hn[1])/2.0
+                                embedding=embedding[0]
                                 entity_embedding_dic[(sentence_id, entity_id)]=embedding
                             if (sentence_id, entity_id_2) not in entity_embedding_dic:
                                 entity = []
@@ -250,6 +252,7 @@ class FSMRE(nn.Module):
                                 entity = torch.unsqueeze(entity, 1)
                                 output, (hn, cn) = self.aggregator(entity, (self.h0, self.c0))
                                 embedding = (hn[0] + hn[1]) / 2.0
+                                embedding = embedding[0]
                                 entity_embedding_dic[(sentence_id, entity_id_2)] = embedding
                             if (sentence_id, entity_id, entity_id_2) not in context_embedding_dic:
                                 context=[]
@@ -265,6 +268,7 @@ class FSMRE(nn.Module):
                                 context=torch.unsqueeze(context, 1)
                                 output, (hn, cn) = self.aggregator(entity, (self.h0, self.c0))
                                 embedding = (hn[0] + hn[1]) / 2.0
+                                embedding = embedding[0]
                                 context_embedding_dic[(sentence_id, entity_id, entity_id_2)] = embedding
                                 context_embedding_dic[(sentence_id, entity_id_2, entity_id)] = embedding
                             batch_entities[label_id].append(torch.cat(entity_embedding_dic[(sentence_id, entity_id)],
@@ -273,5 +277,5 @@ class FSMRE(nn.Module):
         if mode=='support':
             return batch_entities, batch_context
         else:
-            return  entity_embedding_dic, context_embedding_dic
+            return entity_embedding_dic, context_embedding_dic
 

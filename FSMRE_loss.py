@@ -12,19 +12,34 @@ class FSMRELoss(Module):
         return get_loss(input, target, self.label_num)
 
 def get_loss(input, target, label_num):
-    loss = 0
+    loss = torch.tensor(0)
+    single_acc=0.0
+    multi_acc = 0.0
+    multi_count=0.0
     for id in range(len(input)):
-        _loss = 0
+        _loss = torch.tensor(0)
         num = float(len(input[id]) * (len(input[id]) - 1) * label_num)
+        multi_count+=len(input[id]) * (len(input[id]) - 1)
         for i in range(len(input[id])):
             for j in range(len(input[id][i])):
                 if i == j:
                     continue
+                flag=False
                 for k in range(label_num):
-                    _loss += cross_entropy(input[id][i][j][k], target[id][i][j][k])
+                    _loss += cross_entropy(input[id][i][j][k][k], target[id][i][j][k])
+                    if (input[id][i][j][k][k]==max(input[id][i][j][k]) and target[id][i][j][k]==1) or \
+                            (input[id][i][j][k][k]!=max(input[id][i][j][k]) and target[id][i][j][k]==0):
+                        single_acc+=1
+                    else:
+                        flag=True
+                if not flag:
+                    multi_acc+=1
         loss += _loss / num
     loss = loss / float(len(input))
-    return torch.tensor(loss)
+    single_count = multi_count * label_num
+    single_acc=single_acc/single_count
+    multi_acc=multi_acc/multi_count
+    return loss, single_acc, multi_acc
 
 def cross_entropy(predict, ground):
     probability = (predict ** ground) * ((1 - predict) ** (1 - ground))

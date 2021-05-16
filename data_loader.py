@@ -193,44 +193,44 @@ def get_data_loader(root, N, batch_num, support_size, query_size, mode):
     return data_loader
 
 
-root='data/dict.json'
-data_loader=get_data_loader(root, 2, 1, 1, 1,'train')
-encoder=BertModel.from_pretrained('bert-base-cased', output_hidden_states=True)
-
-for data in data_loader:
-    print("ooooooooooooooooooooooooooooooo")
-    spt, qry, label=data
-    support_set=spt[0]
-    query_set=qry[0]
-    labels=label[0]
-    output=encoder(support_set[0],support_set[1])
-    hidden_states=output[2][-1]
-
-    # masks of first sentence's entities
-    h_0=torch.randn(2, 1, 100)
-    c_0=torch.randn(2, 1, 100)
-    for entity_mask in support_set[2][0]:
-        entity=[]
-        for i, val in enumerate(entity_mask):
-            if val==0 and len(entity)!=0:
-                break
-            else:
-                if val==0:
-                    continue
-                else:
-                    entity.append(list(hidden_states[0][i]))
-        seq_len=len(entity)
-        entity=torch.tensor(entity)
-        entity=torch.unsqueeze(entity,1)
-        print(entity.shape)
-        aggregator=nn.LSTM(768, 100, bidirectional=True)
-        # entity: seq_len*1*768
-        output, (hn, cn)=aggregator(entity, (h_0, c_0))
-        print(hn.shape)
-        print((hn[0]+hn[1])/2.0)
-
-
-    print(support_set[0].shape)
-    print(hidden_states.shape)
-    print(hidden_states[0][0][0:20])
+# root='data/dict.json'
+# data_loader=get_data_loader(root, 2, 1, 1, 1,'train')
+# encoder=BertModel.from_pretrained('bert-base-cased', output_hidden_states=True)
+#
+# for data in data_loader:
+#     print("ooooooooooooooooooooooooooooooo")
+#     spt, qry, label=data
+#     support_set=spt[0]
+#     query_set=qry[0]
+#     labels=label[0]
+#     output=encoder(support_set[0],support_set[1])
+#     hidden_states=output[2][-1]
+#
+#     # masks of first sentence's entities
+#     h_0=torch.randn(2, 1, 100)
+#     c_0=torch.randn(2, 1, 100)
+#     for entity_mask in support_set[2][0]:
+#         entity=[]
+#         for i, val in enumerate(entity_mask):
+#             if val==0 and len(entity)!=0:
+#                 break
+#             else:
+#                 if val==0:
+#                     continue
+#                 else:
+#                     entity.append(list(hidden_states[0][i]))
+#         seq_len=len(entity)
+#         entity=torch.tensor(entity)
+#         entity=torch.unsqueeze(entity,1)
+#         print(entity.shape)
+#         aggregator=nn.LSTM(768, 100, bidirectional=True)
+#         # entity: seq_len*1*768
+#         output, (hn, cn)=aggregator(entity, (h_0, c_0))
+#         print(hn.shape)
+#         print((hn[0]+hn[1])/2.0)
+#
+#
+#     print(support_set[0].shape)
+#     print(hidden_states.shape)
+#     print(hidden_states[0][0][0:20])
 
