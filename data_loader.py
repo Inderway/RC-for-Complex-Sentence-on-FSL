@@ -176,15 +176,15 @@ class NYTDataset(Data.Dataset):
             query_label+=label[shots * n + self.support_shot:shots * n + shots]
         support_set = torch.tensor(support_sentence), torch.tensor(support_mask),support_entities, support_context, support_label
         query_set = torch.tensor(query_sentence), torch.tensor(query_mask), query_entities, query_context, query_label
-        return support_set, query_set, labels
+        return support_set, query_set, len(labels)
 
     def __len__(self):
         return self.batch_num
 
 
 def collate_fn(data):
-    support_set, query_set, labels = zip(*data)
-    return support_set, query_set, labels
+    support_set, query_set, label_num = zip(*data)
+    return support_set, query_set, label_num
 
 
 def get_data_loader(root, N, batch_num, support_size, query_size, mode):

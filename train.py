@@ -33,18 +33,18 @@ def init_lr_scheduler(opt, optim):
                                            step_size=opt.lr_scheduler_step)
 
 def init_model(opt):
-    device = 'cuda:0' if torch.cuda.is_available() and opt.cuda else 'cpu'
+    device = torch.device('cuda:0') if torch.cuda.is_available() and opt.cuda else torch.device('cpu')
     # FixMe encoder
-    encoder=BertModel.from_pretrained('bert-base-cased', output_hidden_states=True)
+    encoder=BertModel.from_pretrained('bert-base-cased', output_hidden_states=True).to(device)
     # FixMe aggragator
-    aggregator = nn.LSTM(768, opt.hidden_dim, bidirectional=True)
+    aggregator = nn.LSTM(768, opt.hidden_dim, bidirectional=True).to(device)
     # FixMe propagator
-    propagator=GCNConv(opt.hidden_dim, opt.hidden_dim)
-    model = FSMRE(encoder=encoder, aggregator=aggregator, propagator=propagator)#.to(device)
+    propagator=GCNConv(opt.hidden_dim, opt.hidden_dim).to(device)
+    model = FSMRE(encoder=encoder, aggregator=aggregator, propagator=propagator, device=device).to(device)
     return model
 
 def train(opt, dataloader, model, optim, lr_scheduler):
-    device='cuda:0' if torch.cuda.is_available() and opt.cuda else 'cpu'
+    device=torch.device('cuda:0') if torch.cuda.is_available() and opt.cuda else torch.device('cpu')
     train_loss=[]
     train_single_acc=[]
     train_multi_acc=[]
@@ -60,16 +60,33 @@ def train(opt, dataloader, model, optim, lr_scheduler):
         model.train()
         for batch in tr_iter:
             optim.zero_grad()
-            support_set, query_set, labels=batch
+            support_set, query_set, label_num=batch
             support_set=support_set[0]
             query_set=query_set[0]
-            labels=labels[0]
-            # support_set, query_set=support_set.to(device), query_set.to(device)
-            label_num=len(labels)
-            # sentence_num*entity_num*entity_num*label_num
-            model_output=model(support_set, query_set,labels)
+            label_num=label_num[0]
 
-            loss, single_acc, multi_acc=loss_fn(model_output, query_set[4], label_num)
+            input_support_set=[]
+            input_support_set.append(support_set[0].to(device))
+            input_support_set.append(support_set[1].to(device))
+            for i in range(3):
+                input_support_set.append([])
+            for i in range(2,5):
+                for ele in support_set[i]:
+                    input_support_set[i].append(ele.to(device))
+
+            input_query_set = []
+            input_query_set.append(query_set[0].to(device))
+            input_query_set.append(query_set[1].to(device))
+            for i in range(3):
+                input_query_set.append([])
+            for i in range(2, 5):
+                for ele in query_set[i]:
+                    input_query_set[i].append(ele.to(device))
+            
+            
+            model_output=model(input_support_set, input_query_set,label_num)
+
+            loss, single_acc, multi_acc=loss_fn(model_output, input_query_set[4], label_num)
 
             loss.backward()
             optim.step()
@@ -93,21 +110,40 @@ def train(opt, dataloader, model, optim, lr_scheduler):
     return best_state, best_multi_acc, train_loss, train_single_acc, train_multi_acc
 
 def test(opt, test_dataloader, model):
+    device = torch.device('cuda:0') if torch.cuda.is_available() and opt.cuda else torch.device('cpu')
     single_acc_l = []
     multi_acc_l = []
     for epoch in range(10):
         test_iter=iter(test_dataloader)
         for batch in test_iter:
-            support_set, query_set, labels=batch
+            support_set, query_set, label_num=batch
             support_set=support_set[0]
             query_set=query_set[0]
-            labels=labels[0]
             # support_set, query_set=support_set.to(device), query_set.to(device)
-            label_num=len(labels)
+            label_num=label_num[0]
             # sentence_num*entity_num*entity_num*label_num
-            model_output=model(support_set, query_set,labels)
+            input_support_set = []
+            input_support_set.append(support_set[0].to(device))
+            input_support_set.append(support_set[1].to(device))
+            for i in range(3):
+                input_support_set.append([])
+            for i in range(2, 5):
+                for ele in support_set[i]:
+                    input_support_set[i].append(ele.to(device))
 
-            _, single_acc, multi_acc=loss_fn(model_output, query_set[4], label_num)
+            input_query_set = []
+            input_query_set.append(query_set[0].to(device))
+            input_query_set.append(query_set[1].to(device))
+            for i in range(3):
+                input_query_set.append([])
+            for i in range(2, 5):
+                for ele in query_set[i]:
+                    input_query_set[i].append(ele.to(device))
+
+
+            model_output=model(input_support_set, input_query_set,label_num)
+
+            _, single_acc, multi_acc=loss_fn(model_output, input_query_set[4], label_num)
 
 
 

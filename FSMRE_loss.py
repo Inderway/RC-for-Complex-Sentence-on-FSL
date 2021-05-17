@@ -48,5 +48,5 @@ def get_loss(input, target, label_num):
     return loss, single_acc, multi_acc
 
 def cross_entropy(predict, ground):
-    probability = (predict ** ground) * ((1 - predict) ** (1 - ground))
+    probability = torch.pow(predict, ground) * torch.pow((1 - predict), (1 - ground))
     return 0 - torch.log(probability)

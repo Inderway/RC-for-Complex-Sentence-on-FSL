@@ -20,8 +20,8 @@ class FSMRE(nn.Module):
     few-shot multi-relation extraction
     """
 
-    def __init__(self, encoder, aggregator, propagator, hidden_dim=100, proto_dim=200, support_shot=1,
-                 query_shot=1, max_length=100) -> None:
+    def __init__(self, encoder, aggregator, propagator, device, hidden_dim=100, proto_dim=200, support_shot=1,
+                 query_shot=1, max_length=100):
         """
         Instantiates the layers of the network.
         :param input_size: the size of the input data
@@ -30,6 +30,7 @@ class FSMRE(nn.Module):
         super(FSMRE, self).__init__()
         # the number of support instances inside a task
         self.support_shot = support_shot
+        self.device=device
         # the number of query instances inside a task
         self.query_shot = query_shot
         # the max length of sentences
@@ -45,8 +46,8 @@ class FSMRE(nn.Module):
 
         self.propagator = propagator
 
-        h_0 = torch.randn(2, 1, hidden_dim)
-        c_0 = torch.randn(2, 1, hidden_dim)
+        h_0 = torch.randn(2, 1, hidden_dim).to(self.device)
+        c_0 = torch.randn(2, 1, hidden_dim).to(self.device)
         self.h0 = h_0
         self.c0 = c_0
 
@@ -57,7 +58,7 @@ class FSMRE(nn.Module):
         #     nn.Sigmoid()
         # )
 
-    def forward(self, support_set, query_set, labels):
+    def forward(self, support_set, query_set, label_num):
         """
         generate prototype embedding from support set, and conduct prediction for query_set
         Args:
@@ -81,11 +82,11 @@ class FSMRE(nn.Module):
         # get prototype embedding for each class
         # size: class_size * self.prototype_size
 
-        prototype, context_center, instances_count = self._process_support(support_set, labels)
-        prediction = self._process_query(prototype, context_center, query_set, labels, instances_count)
+        prototype, context_center, instances_count = self._process_support(support_set, label_num)
+        prediction = self._process_query(prototype, context_center, query_set, label_num, instances_count)
         return prediction
 
-    def _process_support(self, support_set, labels):
+    def _process_support(self, support_set, label_num):
         """
         generate prototype embedding for each class
         Args:
@@ -101,7 +102,7 @@ class FSMRE(nn.Module):
 
         '''Step 0 & 1: encoding and propagation'''
         # label_num*instance_num*proto_dim
-        batch_entities, batch_context = self.encoding_aggregation(support_set, labels)
+        batch_entities, batch_context = self.encoding_aggregation(support_set, label_num)
         instances_count = []
         for label_instances in batch_entities:
             instances_count.append(len(label_instances))
@@ -121,7 +122,7 @@ class FSMRE(nn.Module):
             context_center.append(torch.empty_like(mean_val).copy_(mean_val))
         return prototype, context_center, instances_count
 
-    def _process_query(self, prototype, context_center, query_set, labels, instances_count):
+    def _process_query(self, prototype, context_center, query_set, label_num, instances_count):
         """
         generate predictions for query instances
         Args:
@@ -130,18 +131,18 @@ class FSMRE(nn.Module):
         Returns:
             predictions
         """
-        instance_num = torch.tensor(0, dtype=torch.float)
-        instances_count=torch.tensor(instances_count, dtype=torch.float)
+        instance_num = torch.tensor(0, dtype=torch.float).to(self.device)
+        instances_count=torch.tensor(instances_count, dtype=torch.float).to(self.device)
         for instance_c in instances_count:
             instance_num += instance_c
         '''Step 0 & 1: encoding and propagation'''
-        entitity_dic, context_dic = self.encoding_aggregation_query(query_set, labels)
+        entitity_dic, context_dic = self.encoding_aggregation_query(query_set, label_num)
 
         '''Step 2: general propagation '''
         prediction=[]
         for val in query_set[4]:
             e_n, e_n_2, l_n=val.shape
-            prediction.append(torch.zeros((e_n, e_n_2, l_n, l_n), dtype=torch.float, requires_grad=True))
+            prediction.append(torch.zeros((e_n, e_n_2, l_n, l_n), dtype=torch.float, requires_grad=True).to(self.device))
         for i in range(len(query_set[0])):
             x = []
             entity_num = len(query_set[2][i])
@@ -154,23 +155,23 @@ class FSMRE(nn.Module):
                     edge_index[1].append(j + delta)
                     edge_index[1].append(j)
             x = torch.cat(x, 0)
-            edge_index = torch.tensor(edge_index)
+            edge_index = torch.tensor(edge_index).to(self.device)
 
             # each relation
-            for k in range(len(labels)):
+            for k in range(label_num):
                 edge_weight = []
                 for j in range(len(edge_index[0])):
                     edge_weight.append(1.0 / euclid_distance(
                         context_dic[(i, edge_index[0][j].item(), edge_index[1][j].item())],
                         context_center[k]
                     ))
-                edge_weight = torch.tensor(edge_weight)
+                edge_weight = torch.tensor(edge_weight).to(self.device)
                 out = self.propagator(x, edge_index, edge_weight)
                 for j in range(len(edge_index[0])):
                     pred_embedding = torch.cat((out[edge_index[0][j].item()], out[edge_index[1][j].item()]),dim=0)
-                    for n in range(len(labels)):
+                    for n in range(label_num):
                         _sum = []
-                        for l in range(len(labels)):
+                        for l in range(label_num):
                             if l == n:
                                 continue
                             # FixMe limit function
@@ -190,7 +191,7 @@ class FSMRE(nn.Module):
 
         return prediction
 
-    def encoding_aggregation(self, input_set, labels):
+    def encoding_aggregation(self, input_set, label_num):
         """
         general processing of support_set or query_set
         Args:
@@ -214,7 +215,7 @@ class FSMRE(nn.Module):
 
         '''Step 1 - 1: entity aggregation'''
         # sequencial_processing: process entity
-        label_num = len(labels)
+
         # [ [] entity_pair_num ,[],[]  ] label_num
         batch_entities = [[] for i in range(label_num)]
         batch_context = [[] for i in range(label_num)]
@@ -241,7 +242,7 @@ class FSMRE(nn.Module):
                                             continue
                                         else:
                                             entity.append(list(encodings[sentence_id][j]))
-                                entity = torch.tensor(entity)
+                                entity = torch.tensor(entity).to(self.device)
                                 entity = torch.unsqueeze(entity, 1)
                                 output, (hn, cn) = self.aggregator(entity, (self.h0, self.c0))
                                 embedding = (hn[0] + hn[1]) / 2.0
@@ -257,7 +258,7 @@ class FSMRE(nn.Module):
                                             continue
                                         else:
                                             entity.append(list(encodings[sentence_id][j]))
-                                entity = torch.tensor(entity)
+                                entity = torch.tensor(entity).to(self.device)
                                 entity = torch.unsqueeze(entity, 1)
                                 output, (hn, cn) = self.aggregator(entity, (self.h0, self.c0))
                                 embedding = (hn[0] + hn[1]) / 2.0
@@ -273,8 +274,8 @@ class FSMRE(nn.Module):
                                         else:
                                             context.append(list(encodings[sentence_id][j]))
                                 if len(context) == 0:
-                                    context.append(list(torch.zeros(self.hidden_dim)))
-                                context = torch.tensor(context)
+                                    context.append(list(torch.zeros(self.hidden_dim).to(self.device)))
+                                context = torch.tensor(context).to(self.device)
                                 context = torch.unsqueeze(context, 1)
                                 output, (hn, cn) = self.aggregator(context, (self.h0, self.c0))
                                 embedding = (hn[0] + hn[1]) / 2.0
@@ -291,9 +292,9 @@ class FSMRE(nn.Module):
             batch_context[i]=torch.cat(batch_context[i],0)
         return batch_entities, batch_context
 
-    def encoding_aggregation_query(self, input_set, labels):
+    def encoding_aggregation_query(self, input_set, label_num):
         encodings = self.encoder(input_set[0], input_set[1])[2][-1]
-        label_num = len(labels)
+
         entity_embedding_dic = {}
         context_embedding_dic = {}
         for sentence_id, sentence_label in enumerate(input_set[4]):
@@ -313,7 +314,7 @@ class FSMRE(nn.Module):
                                         continue
                                     else:
                                         entity.append(list(encodings[sentence_id][j]))
-                            entity = torch.tensor(entity)
+                            entity = torch.tensor(entity).to(self.device)
                             entity = torch.unsqueeze(entity, 1)
                             output, (hn, cn) = self.aggregator(entity, (self.h0, self.c0))
                             embedding = (hn[0] + hn[1]) / 2.0
@@ -329,7 +330,7 @@ class FSMRE(nn.Module):
                                         continue
                                     else:
                                         entity.append(list(encodings[sentence_id][j]))
-                            entity = torch.tensor(entity)
+                            entity = torch.tensor(entity).to(self.device)
                             entity = torch.unsqueeze(entity, 1)
                             output, (hn, cn) = self.aggregator(entity, (self.h0, self.c0))
                             embedding = (hn[0] + hn[1]) / 2.0
@@ -345,8 +346,8 @@ class FSMRE(nn.Module):
                                     else:
                                         context.append(list(encodings[sentence_id][j]))
                             if len(context) == 0:
-                                context.append(list(torch.zeros(self.hidden_dim)))
-                            context = torch.tensor(context)
+                                context.append(list(torch.zeros(self.hidden_dim).to(self.device)))
+                            context = torch.tensor(context).to(self.device)
                             context = torch.unsqueeze(context, 1)
                             output, (hn, cn) = self.aggregator(context, (self.h0, self.c0))
                             embedding = (hn[0] + hn[1]) / 2.0

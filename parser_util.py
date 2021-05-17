@@ -17,7 +17,7 @@ def get_parser():
     parser.add_argument('-exp', '--experiment_root',
                         type=str,
                         help='root where to store models, losses and accuracies',
-                        default='..' + os.sep + 'output')
+                        default='experiment' + os.sep + 'output')
 
     # FixMe
     parser.add_argument('-nep', '--epochs',

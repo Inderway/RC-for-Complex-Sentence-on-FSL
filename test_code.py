@@ -129,8 +129,10 @@ for i in range(len(l)):
     l[i]=torch.tensor(l[i], dtype=torch.float)
 r=[torch.tensor([i]) for i in range(4)]
 r2=torch.tensor(2,dtype=torch.float)
-
-print(torch.cat(r,0))
+a=[]
+for i in range(3):
+    a.append([])
+print(a)
 
 
 
