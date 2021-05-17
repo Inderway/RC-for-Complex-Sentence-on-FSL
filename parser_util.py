@@ -47,7 +47,7 @@ def get_parser():
     parser.add_argument('-bcN', '--batch_num',
                         type=int,
                         help='number of episodes per epoch, default=100',
-                        default=1)
+                        default=2)
 
     # FixMe
     # 每个小批中指定的随机类的数目，默认为2

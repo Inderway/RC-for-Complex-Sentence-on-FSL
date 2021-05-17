@@ -131,4 +131,5 @@ dmypy.json
 # self
 .idea/
 data/
+experiment/
 test_codes/data

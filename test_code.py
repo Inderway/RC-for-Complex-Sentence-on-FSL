@@ -8,7 +8,8 @@ from torch_geometric.datasets import Planetoid
 import torch.nn.functional as F
 from torch_geometric.nn import GCNConv
 import numpy as np
-
+import xml.etree.cElementTree as ET
+import os
 
 
 device=torch.device('cuda')
@@ -122,18 +123,82 @@ dataset=Planetoid(root='data/tmp/Cora',name='Cora')
 # print('Accuracy: {:.4f}'.format(acc))
 
 
-#
-d=[2,2,1,2,2]
-l=[[[1, 2], [3, 4]], [[2, 3], [1, 5], [2,5]]]
-for i in range(len(l)):
-    l[i]=torch.tensor(l[i], dtype=torch.float)
-r=[torch.tensor([i]) for i in range(4)]
-r2=torch.tensor(2,dtype=torch.float)
-a=[]
-for i in range(3):
-    a.append([])
-print(a)
 
 
+# s="The School of Business and Social Sciences at the Aarhus University (Universitas Aarhusiensis, in Latin), was established in 1928 in Aarhus. The school has 737 academic staff and 1600 students, and is affiliated with the European University Association. Its dean is Thomas Pallesen."
+# print(s.find("Thomas Pallesen"))
+
+
+
+
+# relations={}
+# dir='D:/Dataset/en'
+# for root_, dirs, files in os.walk(dir):
+#     for file in files:
+#         file_dir=os.path.join(root_,file)
+#         # print(file_dir)
+#         tree = ET.ElementTree(file=file_dir)
+#         root=tree.getroot()
+#         root=root[0]
+#         for entry in root:
+#         # print((entry.tag, entry.attrib))
+#             instance_num = 0
+#             triples = []
+#             for child in entry:
+#                 if child.tag=='modifiedtripleset':
+#                     for triple in child:
+#                         tmp=triple.text.split('|')[1].strip()
+#                         if tmp not in triples:
+#                             triples.append(tmp)
+#                 if child.tag=='lex':
+#                     instance_num+=1
+#             for triple in triples:
+#                 if triple not in relations:
+#                     relations[triple]=instance_num
+#                 else:
+#                     relations[triple]+=instance_num
+# print(len(relations))
+# cnt=0
+# count=0
+# for relation in relations:
+#     count+=relations[relation]
+#     if relations[relation]>50:
+#         print("relation: {:50}, count: {}".format(relation, relations[relation]))
+#         cnt+=1
+# print(count)
+
+
+dir='D:/Dataset/en/train/1triples'
+cnt=0
+for root_, dirs, files in os.walk(dir):
+    for file in files:
+        file_dir=os.path.join(root_,file)
+        # print(file_dir)
+        tree = ET.ElementTree(file=file_dir)
+        root=tree.getroot()
+        root=root[0]
+        for entry in root:
+
+        # print((entry.tag, entry.attrib))
+            entities = []
+            for child in entry:
+                if child.tag=='modifiedtripleset':
+                    for triple in child:
+                        tmp_1=triple.text.split('|')[0].strip().replace('_', ' ')
+                        tmp_2=triple.text.split('|')[2].strip().replace('_', ' ')
+                        if tmp_1 not in entities:
+                            entities.append(tmp_1)
+                        if tmp_2 not in entities:
+                            entities.append(tmp_2)
+                if child.tag=='lex':
+                    for entity in entities:
+                        text=child.text
+                        if text.find(entity)==-1:
+                            print(text)
+                            print(entity)
+                            cnt += 1
+                            break
+
+print(cnt)
 
 
