@@ -5,7 +5,6 @@ from parser_util import get_parser
 
 from transformers import BertModel
 import numpy as np
-from tqdm import tqdm
 import torch
 import torch.nn as nn
 import os
@@ -59,7 +58,7 @@ def train(opt, dataloader, model, optim, lr_scheduler):
         tr_iter=iter(dataloader)
 
         model.train()
-        for batch in tqdm(tr_iter):
+        for batch in tr_iter:
             optim.zero_grad()
             support_set, query_set, labels=batch
             support_set=support_set[0]
@@ -94,11 +93,11 @@ def train(opt, dataloader, model, optim, lr_scheduler):
     return best_state, best_multi_acc, train_loss, train_single_acc, train_multi_acc
 
 def test(opt, test_dataloader, model):
-    single_acc = []
-    multi_acc = []
+    single_acc_l = []
+    multi_acc_l = []
     for epoch in range(10):
         test_iter=iter(test_dataloader)
-        for batch in tqdm(test_iter):
+        for batch in test_iter:
             support_set, query_set, labels=batch
             support_set=support_set[0]
             query_set=query_set[0]
@@ -112,8 +111,8 @@ def test(opt, test_dataloader, model):
 
 
 
-            single_acc.append(single_acc)
-            multi_acc.append(multi_acc)
+            single_acc_l.append(single_acc)
+            multi_acc_l.append(multi_acc)
     avg_single_acc=np.mean(single_acc)
     avg_multi_acc=np.mean(multi_acc)
     print('Avg Single Acc: {}, Avg Multi Acc: {}'.format(avg_single_acc, avg_multi_acc))

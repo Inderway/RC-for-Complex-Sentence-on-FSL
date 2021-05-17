@@ -124,14 +124,13 @@ dataset=Planetoid(root='data/tmp/Cora',name='Cora')
 
 #
 d=[2,2,1,2,2]
-l=[1, 1, 0, 1, 1]
-r1=torch.tensor([1,2])
-r2=torch.tensor([3,4])
-a=[r1.unsqueeze(0), r2.unsqueeze(0)]
-b=torch.cat(a, dim=0)
+l=[[[1, 2], [3, 4]], [[2, 3], [1, 5], [2,5]]]
+for i in range(len(l)):
+    l[i]=torch.tensor(l[i], dtype=torch.float)
+r=[torch.tensor([i]) for i in range(4)]
+r2=torch.tensor(2,dtype=torch.float)
 
-
-print(b)
+print(torch.cat(r,0))
 
 
 

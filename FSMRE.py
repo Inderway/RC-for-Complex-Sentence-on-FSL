@@ -12,7 +12,7 @@ from math import exp
 
 
 def euclid_distance(x, y):
-    return torch.pow(x - y, 2).sum().float().item()
+    return torch.pow(x - y, 2).sum()
 
 
 class FSMRE(nn.Module):
@@ -130,17 +130,18 @@ class FSMRE(nn.Module):
         Returns:
             predictions
         """
-        instance_num = 0
+        instance_num = torch.tensor(0, dtype=torch.float)
+        instances_count=torch.tensor(instances_count, dtype=torch.float)
         for instance_c in instances_count:
             instance_num += instance_c
         '''Step 0 & 1: encoding and propagation'''
         entitity_dic, context_dic = self.encoding_aggregation_query(query_set, labels)
 
         '''Step 2: general propagation '''
-
-        prediction = [
-            [[[[0 for n in range(len(labels))] for m in range(len(labels))] for k in range(len(query_set[4][i]))] for j
-             in range(len(query_set[4][i]))] for i in range(len(query_set[4]))]
+        prediction=[]
+        for val in query_set[4]:
+            e_n, e_n_2, l_n=val.shape
+            prediction.append(torch.zeros((e_n, e_n_2, l_n, l_n), dtype=torch.float, requires_grad=True))
         for i in range(len(query_set[0])):
             x = []
             entity_num = len(query_set[2][i])
@@ -158,30 +159,34 @@ class FSMRE(nn.Module):
             # each relation
             for k in range(len(labels)):
                 edge_weight = []
-                for j in range(0, len(edge_index[0]), 2):
+                for j in range(len(edge_index[0])):
                     edge_weight.append(1.0 / euclid_distance(
-                        context_dic[(i, j, edge_index[1][j].item())],
+                        context_dic[(i, edge_index[0][j].item(), edge_index[1][j].item())],
                         context_center[k]
                     ))
                 edge_weight = torch.tensor(edge_weight)
                 out = self.propagator(x, edge_index, edge_weight)
                 for j in range(len(edge_index[0])):
-                    pred_embedding = torch.cat((out[j], out[edge_index[1][j].item()]),dim=0)
+                    pred_embedding = torch.cat((out[edge_index[0][j].item()], out[edge_index[1][j].item()]),dim=0)
                     for n in range(len(labels)):
-                        sum = 0.0
+                        _sum = []
                         for l in range(len(labels)):
                             if l == n:
                                 continue
                             # FixMe limit function
-                            sum += exp(
-                                euclid_distance(pred_embedding, prototype[l]) + float(instances_count[l]) / float(
-                                    instance_num - instances_count[l]))
-                        numerator = exp(
-                            euclid_distance(pred_embedding, prototype[n]) + float(instances_count[n]) / float(
+                            _sum.append(torch.exp(
+                                euclid_distance(pred_embedding, prototype[l]) + instances_count[l] /
+                                (instance_num - instances_count[l])))
+                        for idx in range(len(_sum)):
+                            _sum[idx]=torch.unsqueeze(_sum[idx],0)
+                        sum=torch.cat(_sum, 0).sum()
+                        numerator = torch.exp(
+                            euclid_distance(pred_embedding, prototype[n]) + instances_count[n] / (
                                 instance_num - instances_count[n]))
-                        prediction[i][j][edge_index[1][j]][k][n] = numerator / (numerator + sum)
-        for i in range(len(prediction)):
-            prediction[i] = torch.tensor(prediction[i])
+
+                        with torch.no_grad():
+                            prediction[i][edge_index[0][j].item()][edge_index[1][j].item()][k][n]=numerator/ (numerator + sum)
+
 
         return prediction
 
