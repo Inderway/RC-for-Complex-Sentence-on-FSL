@@ -15,25 +15,25 @@ from transformers import BertTokenizer, BertModel
 
 
 
-class NYTDataset(Data.Dataset):
+class Dataset(Data.Dataset):
     def __init__(self, root, N, batch_num, support_shot, query_shot, mode):
         self.root = root
         self.N = N
         self.support_shot=support_shot
         self.query_shot=query_shot
-        path = root
-        if not os.path.exists(path):
+        if not os.path.exists(root):
             print("[ERROR] Data file does not exist!")
             assert 0
         if support_shot <= 0 or query_shot <= 0:
             print("[ERROR] support shots and query shots must be larger than 0!")
             assert 0
-        self.Data = json.load(open(path))
+        self.Data = json.load(open(root))
         self.classes = list(self.Data.keys())
+        class_num=len(self.classes)
         if mode == 'train':
-            self.classes = self.classes[:17]
+            self.classes = self.classes[:int(class_num*0.8)]
         else:
-            self.classes = self.classes[17:22]
+            self.classes = self.classes[int(class_num*0.8):]
         self.batch_num = batch_num
 
         # sentence=self.json_data[self.classes[0]][0]['sentText']
@@ -69,7 +69,7 @@ class NYTDataset(Data.Dataset):
             for ints in i_v:
                 idx_of_instances[i].append(ints[0])
                 sample_sentences.append(ints[1])
-        # print("class: {}, sentenceID: {}".format(target_classes[0], idx_of_instances[0][0]))
+        print(sample_sentences)
         # print(sample_sentences[0])
 
         max_len = 0
@@ -79,6 +79,7 @@ class NYTDataset(Data.Dataset):
             for i in range(n*shots,(n+1)*shots):
                 sample_sentences[i] = tokenzier.convert_tokens_to_ids(tokenzier.tokenize(sample_sentences[i]))
                 max_len = max(max_len, len(sample_sentences[i]))
+                # query set
                 if shots*n+self.support_shot<=i<shots*n+shots:
                     continue
                 c = target_classes[n]
@@ -188,7 +189,7 @@ def collate_fn(data):
 
 
 def get_data_loader(root, N, batch_num, support_size, query_size, mode):
-    dataset = NYTDataset(root, N, batch_num, support_size, query_size, mode)
+    dataset = Dataset(root, N, batch_num, support_size, query_size, mode)
     data_loader = Data.DataLoader(dataset, batch_size=1, collate_fn=collate_fn)
     return data_loader
 

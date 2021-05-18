@@ -9,6 +9,7 @@ import torch
 import torch.nn as nn
 import os
 from torch_geometric.nn import GCNConv
+import traceback
 
 
 
@@ -83,9 +84,15 @@ def train(opt, dataloader, model, optim, lr_scheduler):
                 for ele in query_set[i]:
                     input_query_set[i].append(ele.to(device))
             
-            
-            model_output=model(input_support_set, input_query_set,label_num)
-
+            model_output=None
+            try:
+                model_output=model(input_support_set, input_query_set,label_num)
+            except Exception:
+                print(input_support_set)
+                print(">>>>>>>>>>>>>>>>>>")
+                print(input_query_set)
+                traceback.print_exc()
+                assert 0
             loss, single_acc, multi_acc=loss_fn(model_output, input_query_set[4], label_num)
 
             loss.backward()
@@ -113,7 +120,7 @@ def test(opt, test_dataloader, model):
     device = torch.device('cuda:0') if torch.cuda.is_available() and opt.cuda else torch.device('cpu')
     single_acc_l = []
     multi_acc_l = []
-    for epoch in range(10):
+    for epoch in range(5):
         test_iter=iter(test_dataloader)
         for batch in test_iter:
             support_set, query_set, label_num=batch
@@ -140,7 +147,15 @@ def test(opt, test_dataloader, model):
                 for ele in query_set[i]:
                     input_query_set[i].append(ele.to(device))
 
-
+            model_output=None
+            try:
+                model_output=model(input_support_set, input_query_set,label_num)
+            except Exception:
+                print(input_support_set)
+                print(">>>>>>>>>>>>>>>>>>")
+                print(input_query_set)
+                traceback.print_exc()
+                assert 0
             model_output=model(input_support_set, input_query_set,label_num)
 
             _, single_acc, multi_acc=loss_fn(model_output, input_query_set[4], label_num)

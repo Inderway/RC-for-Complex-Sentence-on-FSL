@@ -30,7 +30,7 @@ class FSMRE(nn.Module):
         super(FSMRE, self).__init__()
         # the number of support instances inside a task
         self.support_shot = support_shot
-        self.device=device
+        self.device = device
         # the number of query instances inside a task
         self.query_shot = query_shot
         # the max length of sentences
@@ -115,7 +115,7 @@ class FSMRE(nn.Module):
         prototype = []
         context_center = []
         for i, val in enumerate(batch_entities):
-            mean_val=torch.mean(val, dim=0)
+            mean_val = torch.mean(val, dim=0)
             prototype.append(torch.empty_like(mean_val).copy_(mean_val))
         for i, val in enumerate(batch_context):
             mean_val = torch.mean(val, dim=0)
@@ -131,21 +131,26 @@ class FSMRE(nn.Module):
         Returns:
             predictions
         """
+        # get counts of instances in each relation
         instance_num = torch.tensor(0, dtype=torch.float).to(self.device)
-        instances_count=torch.tensor(instances_count, dtype=torch.float).to(self.device)
+        instances_count = torch.tensor(instances_count, dtype=torch.float).to(self.device)
         for instance_c in instances_count:
             instance_num += instance_c
-        '''Step 0 & 1: encoding and propagation'''
+
         entitity_dic, context_dic = self.encoding_aggregation_query(query_set, label_num)
 
-        '''Step 2: general propagation '''
-        prediction=[]
+        # initialize prediction
+        prediction = []
         for val in query_set[4]:
-            e_n, e_n_2, l_n=val.shape
-            prediction.append(torch.zeros((e_n, e_n_2, l_n, l_n), dtype=torch.float, requires_grad=True).to(self.device))
+            e_n, e_n_2, l_n = val.shape
+            prediction.append(
+                torch.zeros((e_n, e_n_2, l_n, l_n), dtype=torch.float, requires_grad=True).to(self.device))
+
         for i in range(len(query_set[0])):
+            # vertex embeddings of GCN
             x = []
             entity_num = len(query_set[2][i])
+            # edges of GCN
             edge_index = [[], []]
             for j in range(entity_num):
                 x.append(entitity_dic[(i, j)])
@@ -167,8 +172,9 @@ class FSMRE(nn.Module):
                     ))
                 edge_weight = torch.tensor(edge_weight).to(self.device)
                 out = self.propagator(x, edge_index, edge_weight)
+
                 for j in range(len(edge_index[0])):
-                    pred_embedding = torch.cat((out[edge_index[0][j].item()], out[edge_index[1][j].item()]),dim=0)
+                    pred_embedding = torch.cat((out[edge_index[0][j].item()], out[edge_index[1][j].item()]), dim=0)
                     for n in range(label_num):
                         _sum = []
                         for l in range(label_num):
@@ -176,18 +182,18 @@ class FSMRE(nn.Module):
                                 continue
                             # FixMe limit function
                             _sum.append(torch.exp(
-                                euclid_distance(pred_embedding, prototype[l]) + instances_count[l] /
+                                euclid_distance(pred_embedding, prototype[l]) * -1.0 + instances_count[l] /
                                 (instance_num - instances_count[l])))
                         for idx in range(len(_sum)):
-                            _sum[idx]=torch.unsqueeze(_sum[idx],0)
-                        sum=torch.cat(_sum, 0).sum()
+                            _sum[idx] = torch.unsqueeze(_sum[idx], 0)
+                        sum = torch.cat(_sum, 0).sum()
                         numerator = torch.exp(
-                            euclid_distance(pred_embedding, prototype[n]) + instances_count[n] / (
-                                instance_num - instances_count[n]))
+                            euclid_distance(pred_embedding, prototype[n]) * -1.0 + instances_count[n] / (
+                                    instance_num - instances_count[n]))
 
                         with torch.no_grad():
-                            prediction[i][edge_index[0][j].item()][edge_index[1][j].item()][k][n]=numerator/ (numerator + sum)
-
+                            prediction[i][edge_index[0][j].item()][edge_index[1][j].item()][k][n] = numerator / (
+                                        numerator + sum)
 
         return prediction
 
@@ -274,7 +280,7 @@ class FSMRE(nn.Module):
                                         else:
                                             context.append(list(encodings[sentence_id][j]))
                                 if len(context) == 0:
-                                    context.append(list(torch.zeros(self.hidden_dim).to(self.device)))
+                                    context.append(list(torch.zeros(768).to(self.device)))
                                 context = torch.tensor(context).to(self.device)
                                 context = torch.unsqueeze(context, 1)
                                 output, (hn, cn) = self.aggregator(context, (self.h0, self.c0))
@@ -283,13 +289,13 @@ class FSMRE(nn.Module):
                                 context_embedding_dic[(sentence_id, entity_id_2, entity_id)] = embedding
                             batch_entities[label_id].append(
                                 torch.cat((entity_embedding_dic[(sentence_id, entity_id)],
-                                                entity_embedding_dic[(sentence_id, entity_id_2)]), 1))
+                                           entity_embedding_dic[(sentence_id, entity_id_2)]), 1))
                             batch_context[label_id].append(
                                 context_embedding_dic[(sentence_id, entity_id, entity_id_2)])
 
         for i in range(label_num):
-            batch_entities[i]=torch.cat(batch_entities[i],0)
-            batch_context[i]=torch.cat(batch_context[i],0)
+            batch_entities[i] = torch.cat(batch_entities[i], 0)
+            batch_context[i] = torch.cat(batch_context[i], 0)
         return batch_entities, batch_context
 
     def encoding_aggregation_query(self, input_set, label_num):
@@ -346,7 +352,7 @@ class FSMRE(nn.Module):
                                     else:
                                         context.append(list(encodings[sentence_id][j]))
                             if len(context) == 0:
-                                context.append(list(torch.zeros(self.hidden_dim).to(self.device)))
+                                context.append(list(torch.zeros(768).to(self.device)))
                             context = torch.tensor(context).to(self.device)
                             context = torch.unsqueeze(context, 1)
                             output, (hn, cn) = self.aggregator(context, (self.h0, self.c0))
