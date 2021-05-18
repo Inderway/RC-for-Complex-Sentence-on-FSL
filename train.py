@@ -54,7 +54,7 @@ def train(opt, dataloader, model, optim, lr_scheduler):
     best_model_path = os.path.join(opt.experiment_root, 'best_model.pth')
     last_model_path = os.path.join(opt.experiment_root, 'last_model.pth')
 
-    for epoch in range(10):
+    for epoch in range(opt.epochs):
         print('=== Epoch: {} ==='.format(epoch))
         tr_iter=iter(dataloader)
 

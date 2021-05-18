@@ -72,9 +72,9 @@ class Dataset(Data.Dataset):
         # target_classes=['successor', 'state']
         # sample_sentences=['The Aston Martin V8 and Aston Martin DBS (later succeeded by the Aston Martin Vantage) are a related means of transport.', 'The manufacturer of the Aston Martin V8, which is related to the Aston Martin RHAM/1, is the Aston Martin. The Aston Martin V8 is assembled in the United Kingdom, where Elizabeth II is the leader, and was succeeded by The Aston Martin Virage.', 'Ampara Hospital is in Sri Lanka and is situated in the Eastern Province state of Sri Lanka. Austin Fernando is the leader of the Eastern Province of Sri Lanka and the Eastern Provincial Council is the governing body of Eastern Province, Sri Lanka. Sri Jayawardenepura Kotte is the capital of Sri Lanka.', 'The location of the Acharya Institute of Technology is "In Soldevanahalli, Acharya Dr. Sarvapalli Radhakrishnan Road, Hessarghatta Main Road, Bangalore – 560090." The Institute was established in 2000 in the state of Karnataka, India and has the motto "Nurturing Excellence. It is affiliated with the Visvesvaraya Technological University.']
         # idx_of_instances=[[88, 331], [154, 231]]
-        print(target_classes)
-        print(sample_sentences)
-        print(idx_of_instances)
+        # print(target_classes)
+        # print(sample_sentences)
+        # print(idx_of_instances)
 
         max_len = 0
         shots=self.support_shot+self.query_shot
