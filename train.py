@@ -54,7 +54,7 @@ def train(opt, dataloader, model, optim, lr_scheduler):
     best_model_path = os.path.join(opt.experiment_root, 'best_model.pth')
     last_model_path = os.path.join(opt.experiment_root, 'last_model.pth')
 
-    for epoch in range(opt.epochs):
+    for epoch in range(10):
         print('=== Epoch: {} ==='.format(epoch))
         tr_iter=iter(dataloader)
 
@@ -120,7 +120,7 @@ def test(opt, test_dataloader, model):
     device = torch.device('cuda:0') if torch.cuda.is_available() and opt.cuda else torch.device('cpu')
     single_acc_l = []
     multi_acc_l = []
-    for epoch in range(5):
+    for epoch in range(1):
         test_iter=iter(test_dataloader)
         for batch in test_iter:
             support_set, query_set, label_num=batch
@@ -203,15 +203,15 @@ def main():
               optim=optim,
               lr_scheduler=lr_scheduler)
     best_state, best_multi_acc, train_loss, train_single_acc, train_multi_acc= res
-    print('Testing with last model================')
-    test(opt=options,
-         test_dataloader=test_dataloader,
-         model=model)
-    model.load_state_dict(best_state)
-    print('Testing with best model================')
-    test(opt=options,
-         test_dataloader=test_dataloader,
-         model=model)
+    # print('Testing with last model================')
+    # test(opt=options,
+    #      test_dataloader=test_dataloader,
+    #      model=model)
+    # model.load_state_dict(best_state)
+    # print('Testing with best model================')
+    # test(opt=options,
+    #      test_dataloader=test_dataloader,
+    #      model=model)
 
 
 def save_list_to_file(path, thelist):

@@ -303,60 +303,43 @@ class FSMRE(nn.Module):
 
         entity_embedding_dic = {}
         context_embedding_dic = {}
-        for sentence_id, sentence_label in enumerate(input_set[4]):
-            for entity_id, entity_1 in enumerate(sentence_label):
-                for entity_id_2, pair_label in enumerate(entity_1):
+        for sentence_id in range(len(input_set[0])):
+            for entity_id in range(len(input_set[2][sentence_id])):
+                for entity_id_2 in range(len(input_set[2][sentence_id])):
                     if entity_id == entity_id_2:
                         continue
-                    for label_id in range(label_num):
-                        if (sentence_id, entity_id) not in entity_embedding_dic:
-                            entity = []
-                            # input_set[2]: sentence_num*entity_num*max_len
-                            for j, val in enumerate(input_set[2][sentence_id][entity_id]):
-                                if val == 0 and len(entity) != 0:
-                                    break
+                    if (sentence_id, entity_id) not in entity_embedding_dic:
+                        entity = []
+                        # input_set[2]: sentence_num*entity_num*max_len
+                        for j, val in enumerate(input_set[2][sentence_id][entity_id]):
+                            if val == 0 and len(entity) != 0:
+                                break
+                            else:
+                                if val == 0:
+                                    continue
                                 else:
-                                    if val == 0:
-                                        continue
-                                    else:
-                                        entity.append(list(encodings[sentence_id][j]))
-                            entity = torch.tensor(entity).to(self.device)
-                            entity = torch.unsqueeze(entity, 1)
-                            output, (hn, cn) = self.aggregator(entity, (self.h0, self.c0))
-                            embedding = (hn[0] + hn[1]) / 2.0
-                            entity_embedding_dic[(sentence_id, entity_id)] = embedding
-                        if (sentence_id, entity_id_2) not in entity_embedding_dic:
-                            entity = []
-                            # input_set[2]: sentence_num*entity_num*max_len
-                            for j, val in enumerate(input_set[2][sentence_id][entity_id_2]):
-                                if val == 0 and len(entity) != 0:
-                                    break
+                                    entity.append(list(encodings[sentence_id][j]))
+                        entity = torch.tensor(entity).to(self.device)
+                        entity = torch.unsqueeze(entity, 1)
+                        output, (hn, cn) = self.aggregator(entity, (self.h0, self.c0))
+                        embedding = (hn[0] + hn[1]) / 2.0
+                        entity_embedding_dic[(sentence_id, entity_id)] = embedding
+                    if (sentence_id, entity_id, entity_id_2) not in context_embedding_dic:
+                        context = []
+                        for j, val in enumerate(input_set[3][sentence_id][entity_id][entity_id_2]):
+                            if val == 0 and len(context) != 0:
+                                break
+                            else:
+                                if val == 0:
+                                    continue
                                 else:
-                                    if val == 0:
-                                        continue
-                                    else:
-                                        entity.append(list(encodings[sentence_id][j]))
-                            entity = torch.tensor(entity).to(self.device)
-                            entity = torch.unsqueeze(entity, 1)
-                            output, (hn, cn) = self.aggregator(entity, (self.h0, self.c0))
-                            embedding = (hn[0] + hn[1]) / 2.0
-                            entity_embedding_dic[(sentence_id, entity_id_2)] = embedding
-                        if (sentence_id, entity_id, entity_id_2) not in context_embedding_dic:
-                            context = []
-                            for j, val in enumerate(input_set[3][sentence_id][entity_id][entity_id_2]):
-                                if val == 0 and len(context) != 0:
-                                    break
-                                else:
-                                    if val == 0:
-                                        continue
-                                    else:
-                                        context.append(list(encodings[sentence_id][j]))
-                            if len(context) == 0:
-                                context.append(list(torch.zeros(768).to(self.device)))
-                            context = torch.tensor(context).to(self.device)
-                            context = torch.unsqueeze(context, 1)
-                            output, (hn, cn) = self.aggregator(context, (self.h0, self.c0))
-                            embedding = (hn[0] + hn[1]) / 2.0
-                            context_embedding_dic[(sentence_id, entity_id, entity_id_2)] = embedding
-                            context_embedding_dic[(sentence_id, entity_id_2, entity_id)] = embedding
+                                    context.append(list(encodings[sentence_id][j]))
+                        if len(context) == 0:
+                            context.append(list(torch.zeros(768).to(self.device)))
+                        context = torch.tensor(context).to(self.device)
+                        context = torch.unsqueeze(context, 1)
+                        output, (hn, cn) = self.aggregator(context, (self.h0, self.c0))
+                        embedding = (hn[0] + hn[1]) / 2.0
+                        context_embedding_dic[(sentence_id, entity_id, entity_id_2)] = embedding
+                        context_embedding_dic[(sentence_id, entity_id_2, entity_id)] = embedding
         return entity_embedding_dic, context_embedding_dic
