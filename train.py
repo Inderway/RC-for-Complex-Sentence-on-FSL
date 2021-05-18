@@ -21,7 +21,8 @@ def init_seed(opt):
 
 def init_dataloader(opt, mode):
     # todo: alter parameters
-    data_loader=get_data_loader(opt.dataset_root, opt.classes_per_it_tr, opt.batch_num, 1, 1,mode)
+    path='data'+os.sep+opt.name
+    data_loader=get_data_loader(path, opt.classes_per_it_tr, opt.batch_num, 1, 1,mode)
     return data_loader
 
 def init_optim(opt,model):
@@ -120,7 +121,7 @@ def test(opt, test_dataloader, model):
     device = torch.device('cuda:0') if torch.cuda.is_available() and opt.cuda else torch.device('cpu')
     single_acc_l = []
     multi_acc_l = []
-    for epoch in range(1):
+    for epoch in range(10):
         test_iter=iter(test_dataloader)
         for batch in test_iter:
             support_set, query_set, label_num=batch
@@ -203,15 +204,15 @@ def main():
               optim=optim,
               lr_scheduler=lr_scheduler)
     best_state, best_multi_acc, train_loss, train_single_acc, train_multi_acc= res
-    # print('Testing with last model================')
-    # test(opt=options,
-    #      test_dataloader=test_dataloader,
-    #      model=model)
-    # model.load_state_dict(best_state)
-    # print('Testing with best model================')
-    # test(opt=options,
-    #      test_dataloader=test_dataloader,
-    #      model=model)
+    print('Testing with last model================')
+    test(opt=options,
+         test_dataloader=test_dataloader,
+         model=model)
+    model.load_state_dict(best_state)
+    print('Testing with best model================')
+    test(opt=options,
+         test_dataloader=test_dataloader,
+         model=model)
 
 
 def save_list_to_file(path, thelist):

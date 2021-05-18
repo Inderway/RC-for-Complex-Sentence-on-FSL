@@ -9,6 +9,7 @@ import torch.nn.functional as F
 from torch_geometric.nn import GCNConv
 import numpy as np
 import json
+from transformers import BertTokenizer
 
 
 device=torch.device('cuda')
@@ -122,21 +123,29 @@ dataset=Planetoid(root='data/tmp/Cora',name='Cora')
 # print('Accuracy: {:.4f}'.format(acc))
 
 
+tokenizer = BertTokenizer.from_pretrained("bert-base-cased")
+ids=[[ 1448,  1104,  1103,  1211,  2712,   117,  1499,  1268,   117,  1110,
+          1121,  9344,  1107,  2123,   117, 25839,  1103,  2761,   112,   188,
+          8250,  2963,   118, 13559, 15402,  1115,  1127,  5624,  1118,  2490,
+           117,  1259,  6907,  1116,   119,     0,     0,     0,     0,     0,
+             0,     0,     0,     0,     0,     0,     0,     0,     0,     0,
+             0],
+        [ 1960,  1168,  5432,  6683,   117,  3215,  4978, 20847,  1116,  1104,
+          3640,  4342,  1105,  7319,  1287,   139,   119, 23360,  1104,  1537,
+         13709,   117,  1138,  1145,  4151,  1103,  1933,   117,  1112,  1138,
+          1242,  1469,  6670,  1105, 12296,  1105,  4801,  2114,  1107,  1103,
+          1160,  2231,   119,     0,     0,     0,     0,     0,     0,     0,
+             0]]
 
-
-
-path='data/dict.json'
-
-data = json.load(open(path))
-classes=list(data.keys())
-data.pop(classes[-1])
-data.pop(classes[-2])
-# for c in data:
-#     print("{:50}, {}".format(c,len(data[c])))
-json_obj=json.dumps(data, indent=4)
-with open('data/nyt.json', 'w') as json_file:
-    json.dump(data, json_file)
-
+tokens=[[],[]]
+for i, id in enumerate(ids):
+    for j in id:
+        tokens[i].append(tokenizer.convert_ids_to_tokens(j))
+        print(tokens[i])
+sentencses=[[],[]]
+for i, token in enumerate(tokens):
+    sentencses[i]=tokenizer.decode(token)
+print(sentencses)
 
 
 

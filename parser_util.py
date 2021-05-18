@@ -8,10 +8,10 @@ def get_parser():
     parser = argparse.ArgumentParser()
     # 添加参数
     # os.sep根据操作系统自动选择路径分隔符\或者/
-    parser.add_argument('-root', '--dataset_root',
+    parser.add_argument('-name', '--name',
                         type=str,
-                        help='path to dataset',
-                        default='data' + os.sep + 'nyt.json')
+                        help='dataset',
+                        default='nyt.json')
     # 命令行解析的参数命令名为dataset_root，简写为root, 参数类型
 
     parser.add_argument('-exp', '--experiment_root',
