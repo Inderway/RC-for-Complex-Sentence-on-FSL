@@ -159,19 +159,19 @@ data=json.load(open('data/nyt.json'))
 # print(count1)
 # print(count2)
 
-res=[]
-for class_ in data:
-    for id, sentence_dic in enumerate(data[class_]):
-        entities=[]
-        for entity in sentence_dic['entityMentions']:
-            if entity['text'] not in entities:
-                entities.append(entity['text'])
-        for relation in sentence_dic["relationMentions"]:
-            if relation['em1Text'] not in entities or relation['em2Text'] not in entities:
-                res.append((class_, sentence_dic))
-                break
-
-print(len(res))
+# res=[]
+# for class_ in data:
+#     for id, sentence_dic in enumerate(data[class_]):
+#         entities=[]
+#         for entity in sentence_dic['entityMentions']:
+#             if entity['text'] not in entities:
+#                 entities.append(entity['text'])
+#         for relation in sentence_dic["relationMentions"]:
+#             if relation['em1Text'] not in entities or relation['em2Text'] not in entities:
+#                 res.append((class_, sentence_dic))
+#                 break
+#
+# print(len(res))
 # print(res[0])
 # for ele in res:
 #     rel=ele[0]
@@ -180,6 +180,8 @@ print(len(res))
 #
 # with open('data/nyt_2.json', 'w') as json_file:
 #     json.dump(data, json_file)
+r=[1,2,3,4,5,6,7,8,9,10]
+print(np.mean(r))
 
 
 

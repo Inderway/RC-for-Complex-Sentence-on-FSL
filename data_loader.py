@@ -94,7 +94,7 @@ class Dataset(Data.Dataset):
 
         label_num = len(labels)
         self.labels = labels
-        print('max_len is: {}'.format(max_len))
+        # print('max_len is: {}'.format(max_len))
         mask = []
         entities = []
         context = []

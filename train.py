@@ -12,7 +12,6 @@ from torch_geometric.nn import GCNConv
 import traceback
 
 
-
 def init_seed(opt):
     torch.cuda.cudnn_enabled = False
     np.random.seed(opt.seed)
@@ -22,7 +21,7 @@ def init_seed(opt):
 def init_dataloader(opt, mode):
     # todo: alter parameters
     path='data'+os.sep+opt.name
-    data_loader=get_data_loader(path, opt.classes_per_it_tr, opt.batch_num, 1, 1,mode)
+    data_loader=get_data_loader(path, opt.classes_per_it_tr, opt.batch_num, opt.num_support_tr, opt.num_query_tr,mode)
     return data_loader
 
 def init_optim(opt,model):
@@ -60,7 +59,8 @@ def train(opt, dataloader, model, optim, lr_scheduler):
         tr_iter=iter(dataloader)
 
         model.train()
-        for batch in tr_iter:
+        for b_id, batch in enumerate(tr_iter):
+            print('--- batch: {} ---'.format(b_id))
             optim.zero_grad()
             support_set, query_set, label_num=batch
             support_set=support_set[0]
@@ -101,9 +101,9 @@ def train(opt, dataloader, model, optim, lr_scheduler):
             train_loss.append(loss.item())
             train_single_acc.append(single_acc)
             train_multi_acc.append(multi_acc)
-        avg_loss=np.mean(train_loss[-opt.batch_num:])
-        avg_single_acc=np.mean(train_single_acc[-opt.batch_num:])
-        avg_multi_acc=np.mean(train_multi_acc[-opt.batch_num:])
+        avg_loss=np.mean(train_loss)
+        avg_single_acc=np.mean(train_single_acc)
+        avg_multi_acc=np.mean(train_multi_acc)
         print('Avg Train Loss: {}, Avg Train Single Acc: {}, Avg Train Multi Acc: {}'.format(avg_loss, avg_single_acc, avg_multi_acc))
         lr_scheduler.step()
         if avg_multi_acc>best_multi_acc:
@@ -121,9 +121,11 @@ def test(opt, test_dataloader, model):
     device = torch.device('cuda:0') if torch.cuda.is_available() and opt.cuda else torch.device('cpu')
     single_acc_l = []
     multi_acc_l = []
-    for epoch in range(10):
+    for epoch in range(5):
+        print('=== Epoch: {} ==='.format(epoch))
         test_iter=iter(test_dataloader)
-        for batch in test_iter:
+        for b_id, batch in enumerate(test_iter):
+            print('--- batch: {} ---'.format(b_id))
             support_set, query_set, label_num=batch
             support_set=support_set[0]
             query_set=query_set[0]
@@ -165,8 +167,8 @@ def test(opt, test_dataloader, model):
 
             single_acc_l.append(single_acc)
             multi_acc_l.append(multi_acc)
-    avg_single_acc=np.mean(single_acc)
-    avg_multi_acc=np.mean(multi_acc)
+    avg_single_acc=np.mean(single_acc_l)
+    avg_multi_acc=np.mean(multi_acc_l)
     print('Avg Single Acc: {}, Avg Multi Acc: {}'.format(avg_single_acc, avg_multi_acc))
     return avg_multi_acc
 

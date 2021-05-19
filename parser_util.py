@@ -23,7 +23,7 @@ def get_parser():
     parser.add_argument('-nep', '--epochs',
                         type=int,
                         help='number of epochs to train for',
-                        default=10)
+                        default=100)
 
     parser.add_argument('-lr', '--learning_rate',
                         type=float,
@@ -47,7 +47,7 @@ def get_parser():
     parser.add_argument('-bcN', '--batch_num',
                         type=int,
                         help='number of episodes per epoch, default=100',
-                        default=1)
+                        default=10)
 
     # FixMe
     # 每个小批中指定的随机类的数目，默认为2
@@ -67,13 +67,13 @@ def get_parser():
     parser.add_argument('-nsTr', '--num_support_tr',
                         type=int,
                         help='number of samples per class to use as support for training, default=5',
-                        default=12)
+                        default=1)
 
     # 每个类的查询集样本数
     parser.add_argument('-nqTr', '--num_query_tr',
                         type=int,
                         help='number of samples per class to use as query for training, default=5',
-                        default=5)
+                        default=1)
 
 
     # 使初始随机值一致，如果不设置，那么seed就是当前时间，每次生成的随机数都不一样
