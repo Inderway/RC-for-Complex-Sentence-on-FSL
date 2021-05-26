@@ -11,7 +11,7 @@ def get_parser():
     parser.add_argument('-name', '--name',
                         type=str,
                         help='dataset',
-                        default='nyt.json')
+                        default='webnlg.json')
     # 命令行解析的参数命令名为dataset_root，简写为root, 参数类型
 
     parser.add_argument('-exp', '--experiment_root',
@@ -23,7 +23,7 @@ def get_parser():
     parser.add_argument('-nep', '--epochs',
                         type=int,
                         help='number of epochs to train for',
-                        default=100)
+                        default=10)
 
     parser.add_argument('-lr', '--learning_rate',
                         type=float,

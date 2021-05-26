@@ -10,6 +10,9 @@ from torch_geometric.nn import GCNConv
 import numpy as np
 import json
 from transformers import BertTokenizer
+import xml.etree.cElementTree as ET
+import os
+
 
 
 device=torch.device('cuda')
@@ -149,7 +152,7 @@ dataset=Planetoid(root='data/tmp/Cora',name='Cora')
 
 #
 
-data=json.load(open('data/nyt.json'))
+data=json.load(open('data/webnlg.json'))
 # count1=0
 # count2=0
 # for r in data:
@@ -159,7 +162,7 @@ data=json.load(open('data/nyt.json'))
 # print(count1)
 # print(count2)
 
-# res=[]
+res=[]
 # for class_ in data:
 #     for id, sentence_dic in enumerate(data[class_]):
 #         entities=[]
@@ -171,17 +174,45 @@ data=json.load(open('data/nyt.json'))
 #                 res.append((class_, sentence_dic))
 #                 break
 #
-# print(len(res))
-# print(res[0])
+#
+# # tokenzier = BertTokenizer.from_pretrained('bert-base-cased')
+# # for class_ in data:
+# #     for id, sentence_dic in enumerate(data[class_]):
+# #         entities=[]
+# #         sentence_token = tokenzier.convert_tokens_to_ids(tokenzier.tokenize(sentence_dic['sentText']))
+# #         for entity in sentence_dic['entityMentions']:
+# #             if entity['text'] not in entities:
+# #                 entities.append(entity['text'])
+# #         for entity in entities:
+# #             token = tokenzier.convert_tokens_to_ids(tokenzier.tokenize(entity))
+# #             flag=False
+# #             for j in range(len(sentence_token) + 1 - len(token)):
+# #                 if sentence_token[j: j + len(token)] == token:
+# #                     flag=True
+# #             if not flag:
+# #                 res.append((class_, sentence_dic))
+# #                 break
+#
+#
+#
+#
+#
+#print(len(res))
+#
+print(len(data))
+
+# #
 # for ele in res:
 #     rel=ele[0]
 #     sent=ele[1]
 #     data[rel].remove(sent)
-#
-# with open('data/nyt_2.json', 'w') as json_file:
+# #
+# with open('data/webnlg_4.json', 'w') as json_file:
 #     json.dump(data, json_file)
-r=[1,2,3,4,5,6,7,8,9,10]
-print(np.mean(r))
+
+
+
+
 
 
 

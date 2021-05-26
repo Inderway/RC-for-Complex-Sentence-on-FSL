@@ -13,8 +13,6 @@ import json
 from transformers import BertTokenizer, BertModel
 
 
-
-
 class Dataset(Data.Dataset):
     def __init__(self, root, N, batch_num, support_shot, query_shot, mode):
         self.root = root
@@ -69,9 +67,9 @@ class Dataset(Data.Dataset):
             for ints in i_v:
                 idx_of_instances[i].append(ints[0])
                 sample_sentences.append(ints[1])
-        # target_classes=['successor', 'state']
-        # sample_sentences=['The Aston Martin V8 and Aston Martin DBS (later succeeded by the Aston Martin Vantage) are a related means of transport.', 'The manufacturer of the Aston Martin V8, which is related to the Aston Martin RHAM/1, is the Aston Martin. The Aston Martin V8 is assembled in the United Kingdom, where Elizabeth II is the leader, and was succeeded by The Aston Martin Virage.', 'Ampara Hospital is in Sri Lanka and is situated in the Eastern Province state of Sri Lanka. Austin Fernando is the leader of the Eastern Province of Sri Lanka and the Eastern Provincial Council is the governing body of Eastern Province, Sri Lanka. Sri Jayawardenepura Kotte is the capital of Sri Lanka.', 'The location of the Acharya Institute of Technology is "In Soldevanahalli, Acharya Dr. Sarvapalli Radhakrishnan Road, Hessarghatta Main Road, Bangalore – 560090." The Institute was established in 2000 in the state of Karnataka, India and has the motto "Nurturing Excellence. It is affiliated with the Visvesvaraya Technological University.']
-        # idx_of_instances=[[88, 331], [154, 231]]
+        # target_classes=['formerTeam', 'foundedBy']
+        # sample_sentences=["The Houston Texans, based in the city of Houston, was Akeem Dent's former team.", 'Akeem Dent debuted with the Atlanta Falcons which are owned by, Arthur Blank. Akeem Dent used to play for Texas based, Houston Texans.', 'The BBC was founded by John Reith, 1st Baron Reith.', 'Abarth (founded byCarlo Abarth) are the manufacturers of the Abarth 1000 GT Coupé which was designed by Gruppo Bertone (founded in Italy).']
+        # idx_of_instances=[[52, 120], [3, 28]]
         # print(target_classes)
         # print(sample_sentences)
         # print(idx_of_instances)
@@ -121,6 +119,7 @@ class Dataset(Data.Dataset):
                     idxs = []
                     token = tokenzier.convert_tokens_to_ids(tokenzier.tokenize(ent))
                     for j in range(max_len+1-len(token)):
+                        # sentence_token=sample_sentences[i]
                         if sample_sentences[i][j: j + len(token)] == token:
                             idxs.append((j, j + len(token)))
                     for start, end in idxs:
