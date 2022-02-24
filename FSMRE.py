@@ -1,6 +1,5 @@
 """
 The main model of FSMRE
-Author: Tong
 Time: 11-04-2021
 Remark: Wei
 """
