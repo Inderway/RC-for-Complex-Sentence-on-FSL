@@ -1,1 +1,1 @@
-# Relation Classification on Complicated Sentences with Few-shot 
+# Relation Classification for Complicated Sentences with Few-shot learning
